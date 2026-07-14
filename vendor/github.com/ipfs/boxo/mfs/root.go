@@ -1,0 +1,287 @@
+package mfs
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"time"
+
+	chunker "github.com/ipfs/boxo/chunker"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	ft "github.com/ipfs/boxo/ipld/unixfs"
+	"github.com/ipfs/boxo/provider"
+	ipld "github.com/ipfs/go-ipld-format"
+	logging "github.com/ipfs/go-log/v2"
+)
+
+// TODO: Remove if not used.
+var (
+	ErrNotExist = errors.New("no such rootfs")
+	ErrClosed   = errors.New("file closed")
+)
+
+var log = logging.Logger("mfs")
+
+// TODO: Remove if not used.
+var ErrIsDirectory = errors.New("error: is a directory")
+
+// The information that an MFS `Directory` has about its children
+// when updating one of its entries: when a child mutates it signals
+// its parent directory to update its entry (under `Name`) with the
+// new content (in `Node`).
+type child struct {
+	Name string
+	Node ipld.Node
+}
+
+// This interface represents the basic property of MFS directories of updating
+// children entries with modified content. Implemented by both the MFS
+// `Directory` and `Root` (which is basically a `Directory` with republishing
+// support).
+//
+// TODO: What is `fullsync`? (unnamed `bool` argument)
+// TODO: There are two types of persistence/flush that need to be
+// distinguished here, one at the DAG level (when I store the modified
+// nodes in the DAG service) and one in the UnixFS/MFS level (when I modify
+// the entry/link of the directory that pointed to the modified node).
+type parent interface {
+	// Method called by a child to its parent to signal to update the content
+	// pointed to in the entry by that child's name. The child sends its own
+	// information in the `child` structure. As modifying a directory entry
+	// entails modifying its contents the parent will also call *its* parent's
+	// `updateChildEntry` to update the entry pointing to the new directory,
+	// this mechanism is in turn repeated until reaching the `Root`.
+	updateChildEntry(c child) error
+
+	// getChunker returns the chunker factory for files, or nil for default.
+	getChunker() chunker.SplitterGen
+}
+
+type NodeType int
+
+const (
+	TFile NodeType = iota
+	TDir
+)
+
+const (
+	repubQuick = 300 * time.Millisecond
+	repubLong  = 3 * time.Second
+)
+
+// FSNode abstracts the `Directory` and `File` structures, it represents
+// any child node in the MFS (i.e., all the nodes besides the `Root`). It
+// is the counterpart of the `parent` interface which represents any
+// parent node in the MFS (`Root` and `Directory`).
+// (Not to be confused with the `unixfs.FSNode`.)
+type FSNode interface {
+	GetNode() (ipld.Node, error)
+
+	Flush() error
+	Type() NodeType
+	SetModTime(ts time.Time) error
+	SetMode(mode os.FileMode) error
+}
+
+// IsDir checks whether the FSNode is dir type
+func IsDir(fsn FSNode) bool {
+	return fsn.Type() == TDir
+}
+
+// IsFile checks whether the FSNode is file type
+func IsFile(fsn FSNode) bool {
+	return fsn.Type() == TFile
+}
+
+// Root represents the root of a filesystem tree.
+type Root struct {
+	// Root directory of the MFS layout.
+	dir *Directory
+
+	repub   *Republisher
+	prov    provider.MultihashProvider
+	chunker chunker.SplitterGen // chunker factory for files, nil means default
+}
+
+// NewRoot creates a new Root from an existing DAG node and starts a
+// republisher routine for it. The provided [Option]s configure the
+// root directory's DAG-shape settings (CidBuilder, MaxLinks, etc.).
+func NewRoot(ctx context.Context, ds ipld.DAGService, node *dag.ProtoNode, pf PubFunc, prov provider.MultihashProvider, opts ...Option) (*Root, error) {
+	o := resolveOpts(opts)
+
+	var repub *Republisher
+	if pf != nil {
+		repub = NewRepublisher(pf, repubQuick, repubLong, node.Cid())
+	}
+
+	root := &Root{
+		repub:   repub,
+		prov:    prov,
+		chunker: o.chunker,
+	}
+
+	fsn, err := ft.FSNodeFromBytes(node.Data())
+	if err != nil {
+		log.Error("IPNS pointer was not unixfs node")
+		// TODO: IPNS pointer?
+		return nil, err
+	}
+
+	switch fsn.Type() {
+	case ft.TDirectory, ft.THAMTShard:
+		newDir, err := NewDirectory(ctx, node.String(), node, root, ds, prov)
+		if err != nil {
+			return nil, err
+		}
+
+		// Apply root-level directory settings to the loaded directory.
+		// These are not persisted in the DAG node, so they must be
+		// re-applied every time the root is opened.
+		if o.cidBuilder != nil {
+			newDir.unixfsDir.SetCidBuilder(o.cidBuilder)
+		}
+		if o.maxLinks > 0 {
+			newDir.unixfsDir.SetMaxLinks(o.maxLinks)
+		}
+		if o.maxHAMTFanout > 0 {
+			newDir.unixfsDir.SetMaxHAMTFanout(o.maxHAMTFanout)
+		}
+		if o.hamtShardingSize > 0 {
+			newDir.unixfsDir.SetHAMTShardingSize(o.hamtShardingSize)
+		}
+		if o.sizeEstimationMode != nil {
+			newDir.unixfsDir.SetSizeEstimationMode(*o.sizeEstimationMode)
+		}
+
+		root.dir = newDir
+	case ft.TFile, ft.TMetadata, ft.TRaw:
+		return nil, fmt.Errorf("root can't be a file (unixfs type: %s)", fsn.Type())
+		// TODO: This special error reporting case doesn't seem worth it, we either
+		// have a UnixFS directory or we don't.
+	default:
+		return nil, fmt.Errorf("unrecognized unixfs type: %s", fsn.Type())
+	}
+	return root, nil
+}
+
+// NewEmptyRoot creates an empty Root directory with the given [Option]s.
+// A republisher is created if PubFunc is not nil.
+func NewEmptyRoot(ctx context.Context, ds ipld.DAGService, pf PubFunc, prov provider.MultihashProvider, opts ...Option) (*Root, error) {
+	o := resolveOpts(opts)
+
+	root := &Root{
+		prov:    prov,
+		chunker: o.chunker,
+	}
+
+	dir, err := newEmptyDirectory(ctx, "", root, ds, prov, o)
+	if err != nil {
+		return nil, err
+	}
+
+	// Rather than "dir.GetNode()" because it is cheaper and we have no
+	// risks.
+	nd, err := dir.unixfsDir.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	var repub *Republisher
+	if pf != nil {
+		repub = NewRepublisher(pf, repubQuick, repubLong, nd.Cid())
+	}
+
+	root.repub = repub
+	root.dir = dir
+	return root, nil
+}
+
+// GetDirectory returns the root directory.
+func (kr *Root) GetDirectory() *Directory {
+	return kr.dir
+}
+
+// GetChunker returns the chunker factory, or nil if using default.
+func (kr *Root) GetChunker() chunker.SplitterGen {
+	return kr.chunker
+}
+
+// getChunker implements the parent interface.
+func (kr *Root) getChunker() chunker.SplitterGen {
+	return kr.chunker
+}
+
+// Flush signals that an update has occurred since the last publish,
+// and updates the Root republisher.
+// TODO: We are definitely abusing the "flush" terminology here.
+func (kr *Root) Flush() error {
+	nd, err := kr.GetDirectory().GetNode()
+	if err != nil {
+		return err
+	}
+
+	if kr.repub != nil {
+		kr.repub.Update(nd.Cid())
+	}
+	return nil
+}
+
+// FlushMemFree flushes the root directory and then uncaches all of its links.
+// This has the effect of clearing out potentially stale references and allows
+// them to be garbage collected.
+// CAUTION: Take care not to ever call this while holding a reference to any
+// child directories. Those directories will be bad references and using them
+// may have unintended racy side effects.
+// A better implemented mfs system (one that does smarter internal caching and
+// refcounting) shouldnt need this method.
+// TODO: Review the motivation behind this method once the cache system is
+// refactored.
+func (kr *Root) FlushMemFree(ctx context.Context) error {
+	dir := kr.GetDirectory()
+
+	return dir.Flush()
+}
+
+// updateChildEntry implements the `parent` interface, and signals
+// to the publisher that there are changes ready to be published.
+// This is the only thing that separates a `Root` from a `Directory`.
+// TODO: Evaluate merging both.
+// TODO: The `sync` argument isn't used here (we've already reached
+// the top), document it and maybe make it an anonymous variable (if
+// that's possible).
+func (kr *Root) updateChildEntry(c child) error {
+	err := kr.GetDirectory().dagService.Add(context.TODO(), c.Node)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Why are we not using the inner directory lock nor
+	// applying the same procedure as `Directory.updateChildEntry`?
+
+	if kr.prov != nil {
+		log.Debugf("mfs: provide: %s", c.Node.Cid())
+		if err := kr.prov.StartProviding(false, c.Node.Cid().Hash()); err != nil {
+			log.Warnf("mfs: error while providing %s: %s", c.Node.Cid(), err)
+		}
+	}
+
+	if kr.repub != nil {
+		kr.repub.Update(c.Node.Cid())
+	}
+	return nil
+}
+
+func (kr *Root) Close() error {
+	nd, err := kr.GetDirectory().GetNode()
+	if err != nil {
+		return err
+	}
+
+	if kr.repub != nil {
+		kr.repub.Update(nd.Cid())
+		return kr.repub.Close()
+	}
+
+	return nil
+}

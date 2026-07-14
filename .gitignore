@@ -1,0 +1,12 @@
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+
+# Go binaries and local runtime repositories
+/val
+/ipfs_repo/
+/orbitdb_repo/
+/working_store.db
