@@ -10,7 +10,7 @@ reality.
 
 ## Purpose
 
-Validatorium is being built to store factual premises that can be evaluated against
+__Validatorium__ is being built to store factual premises that can be evaluated against
 evidence. A premise is a single, unambiguous assertion whose significant terms are
 grounded to versioned ontology records. A premise is valid when evaluation against
 its evidence and applicable context returns true.
@@ -125,3 +125,4 @@ cited.
 The software licensing model is being finalized, with source-available commercial
 licensing under consideration. No root software license has yet been granted.
 
+<img align="absmiddle" height="80" alt="validatorium-logo" src="https://github.com/user-attachments/assets/a7ab8bd6-1c69-41d2-b69d-3992e4e6a057" /> "Validatorium" is Brought to You by [GNOMATIX](https://linkedin.com/company/gnomatix).
