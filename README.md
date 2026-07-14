@@ -21,7 +21,7 @@ claims with explicit provenance.
 
 ## Atomic Premises
 
-["Atomic Premises for An ATOMIC FUTURE!"](./assets/images/validatorium-like-wikipedia-but-true.mp4)
+!["Atomic Premises for An ATOMIC FUTURE!"](./assets/images/validatorium-like-wikipedia-but-true.mp4)
 
 An atomic premise:
 
