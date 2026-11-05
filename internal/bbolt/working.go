@@ -21,17 +21,22 @@ import (
 //	current               UUID            -> CID of the current local version
 //	attestations          attestation UUID -> canonical attestation bytes (immutable)
 //	attestations_by_premise premiseUUID + 0x00 + attestation UUID -> CID of the attestation bytes
+//	term_versions         CID             -> canonical term record bytes (immutable)
+//	terms                 term UUID       -> CID of the current term record version
 //
-// Candidates are the only mutable record class. Versions and attestations are
-// content-addressed or append-only; a write that would change stored bytes is
-// refused with storage.ErrImmutable.
+// Candidates are the only mutable record class. Versions, term versions and
+// attestations are content-addressed or append-only; a write that would change
+// stored bytes is refused with storage.ErrImmutable. The current and terms
+// buckets hold pointers only.
 var (
 	bucketCandidates      = []byte("candidates")
 	bucketVersions        = []byte("versions")
 	bucketCurrent         = []byte("current")
 	bucketAttestations    = []byte("attestations")
 	bucketAttestIdx       = []byte("attestations_by_premise")
-	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx}
+	bucketTermVersions    = []byte("term_versions")
+	bucketTerms           = []byte("terms")
+	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms}
 	attestationIndexDelim = byte(0)
 )
 
@@ -216,6 +221,71 @@ func (w *WorkingStore) ListAttestations(ctx context.Context, premiseUUID string)
 		return nil
 	})
 	return out, err
+}
+
+func (w *WorkingStore) PutTermRecord(ctx context.Context, t *model.TermRecord) (storage.VersionRef, error) {
+	if t == nil {
+		return storage.VersionRef{}, errors.New("working store: nil term record")
+	}
+	if err := t.ValidateRecord(); err != nil {
+		return storage.VersionRef{}, err
+	}
+	data, err := t.CanonicalBytes()
+	if err != nil {
+		return storage.VersionRef{}, err
+	}
+	id, err := storage.ContentID(data)
+	if err != nil {
+		return storage.VersionRef{}, err
+	}
+	err = w.db.Update(func(tx *bolt.Tx) error {
+		if err := putImmutable(tx.Bucket(bucketTermVersions), []byte(id), data); err != nil {
+			return err
+		}
+		return tx.Bucket(bucketTerms).Put([]byte(t.UUID), []byte(id))
+	})
+	if err != nil {
+		return storage.VersionRef{}, err
+	}
+	return storage.VersionRef{UUID: t.UUID, CID: id}, nil
+}
+
+func (w *WorkingStore) GetTermRecord(ctx context.Context, uuid string) (*model.TermRecord, error) {
+	var data []byte
+	err := w.db.View(func(tx *bolt.Tx) error {
+		cid := tx.Bucket(bucketTerms).Get([]byte(uuid))
+		if cid == nil {
+			return storage.ErrNotFound
+		}
+		v := tx.Bucket(bucketTermVersions).Get(cid)
+		if v == nil {
+			return fmt.Errorf("working store: term %s points at missing version %s", uuid, cid)
+		}
+		data = make([]byte, len(v))
+		copy(data, v)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return model.TermRecordFromBytes(data)
+}
+
+func (w *WorkingStore) GetTermRecordVersion(ctx context.Context, cid string) (*model.TermRecord, error) {
+	data, err := w.get(bucketTermVersions, []byte(cid))
+	if err != nil {
+		return nil, err
+	}
+	if err := storage.VerifyContentID(cid, data); err != nil {
+		return nil, fmt.Errorf("working store: stored term version corrupt: %w", err)
+	}
+	return model.TermRecordFromBytes(data)
+}
+
+func (w *WorkingStore) ResolveTerm(ctx context.Context, uuid string) ([]*model.TermRecord, error) {
+	return model.ResolveTermReplacements(func(id string) (*model.TermRecord, error) {
+		return w.GetTermRecord(ctx, id)
+	}, uuid)
 }
 
 // get copies a value out of a bucket so it stays valid after the transaction.

@@ -98,6 +98,17 @@ type WorkingStore interface {
 	// in attestation-UUID order. An empty result is not an error.
 	ListAttestations(ctx context.Context, premiseUUID string) ([]*model.ValidityAttestation, error)
 
+	// PutTermRecord stores an immutable version of a term record and points
+	// its UUID at that version. Earlier versions remain addressable.
+	PutTermRecord(ctx context.Context, t *model.TermRecord) (VersionRef, error)
+	// GetTermRecord returns the current version of a term record or ErrNotFound.
+	GetTermRecord(ctx context.Context, uuid string) (*model.TermRecord, error)
+	// GetTermRecordVersion returns one stored term record version by CID.
+	GetTermRecordVersion(ctx context.Context, cid string) (*model.TermRecord, error)
+	// ResolveTerm follows replacement pointers from a term record UUID to the
+	// current records that replace it (see model.ResolveTermReplacements).
+	ResolveTerm(ctx context.Context, uuid string) ([]*model.TermRecord, error)
+
 	Close() error
 }
 
