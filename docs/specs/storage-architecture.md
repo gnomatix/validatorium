@@ -103,10 +103,18 @@ connectivity returns.
 
 Implemented now:
 
-- bbolt local-store scaffold;
-- embedded Kubo startup;
-- go-orbit-db integration; and
-- a tested two-node replication and reconvergence spike.
+- the tier-1 bbolt working store (candidates, immutable versions by CID,
+  current pointers, attestation log, versioned term records);
+- the tier-2 global store over embedded Kubo and go-orbit-db (raw blocks by
+  CID, replicated UUID-keyed pointer records);
+- the `WorkingStore` / `GlobalStore` tier boundary;
+- promotion enforcement: publication only under a true, unexpired attestation
+  for the exact version (steps 1, 2 and 4 of §4; term and evidence versions are
+  carried inside the attestation record rather than pinned separately);
+- versioned term records with replacement pointers and traversal; and
+- tested two-node replication, including an end-to-end promotion read back on
+  a peer.
 
-Promotion enforcement, release manifests, runtime/JIT evaluation, ontology update
-processing, and instrument adapters remain intended architecture.
+Evaluation itself, signing, namespaced pointer databases, release manifests,
+runtime/JIT evaluation workflows, and instrument adapters remain intended
+architecture. See `docs/BUILD_STATE.md`.

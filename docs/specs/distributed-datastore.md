@@ -82,6 +82,11 @@ identifiers, and restricted data must not be replicated implicitly.
 
 ## 10. Current Implementation
 
-The repository contains embedded Kubo/go-orbit-db integration and a two-node
-replication/reconvergence spike. Production store separation, promotion, releases,
-access policy, and runtime-attestation publication are not yet complete.
+The repository contains a global store over embedded Kubo and go-orbit-db
+(immutable raw blocks by CID plus one replicated pointer Documents store keyed by
+UUID), a promotion seam that publishes a premise version and its true
+attestation only after the admission checks pass, and two-node replication tests
+including the promotion path. Store separation per record class, namespaced
+pointer databases, releases, access policy beyond the pointer store's write list,
+signing, and runtime-attestation publication are not yet complete. See
+`docs/BUILD_STATE.md`.

@@ -1,6 +1,6 @@
 # Validatorium — Build State
 
-Last updated: 2026-07-14.
+Last updated: 2026-11-05.
 
 This document records what the repository implements now. Intended behavior is
 defined in the specifications. Durable work state and architecture decisions are
@@ -9,53 +9,65 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
 ## Implemented now
 
 - Go 1.26.5 module at `gnomatix/validatorium`
-- CLI skeleton at `cmd/val`
-- UUID-based micropublication record model
-- bbolt local storage scaffold
-- embedded Kubo node and go-orbit-db integration
+- CLI at `cmd/val` that opens both storage tiers (on-disk Kubo repo, or an
+  isolated in-process network with `-offline`) and reports their addresses
+- UUID-based micropublication record model with canonical bytes for
+  content-addressed immutable versions
+- Immutable validity attestation records (`true` / `false` / `indeterminate`,
+  optional expiry) with well-formedness checks
+- Versioned ontology-term records with obsolete-record replacement pointers and
+  replacement traversal (splits, merges, cycle and dangling-pointer detection)
+- Tier-boundary interfaces: `storage.WorkingStore` (tier 1) and
+  `storage.GlobalStore` (tier 2); `storage.ContentID` computes the CIDv1
+  raw/SHA2-256 identifier that IPFS assigns to the same bytes
+- bbolt working store: mutable candidate drafts, immutable versions by CID,
+  UUID-to-current-CID pointers, an append-only attestation log indexed by
+  premise, and versioned term records; basic-operation benchmarks
+- Tier-2 global store over embedded Kubo and go-orbit-db: raw blocks by CID
+  (verified on put and get) and a replicated UUID-keyed pointer Documents store
+- Promotion seam: a candidate is published to the global store only under a
+  true, unexpired attestation that names the exact premise version; refusals
+  leave both tiers unchanged; version and attestation history is retained
+- Tests: unit tests per package, two-node replication of blocks and pointers,
+  and an end-to-end test that promotes from bbolt through Kubo/go-orbit-db and
+  reads the pointer, version block and attestation block on a second node
 - two-node replication and partition-reconvergence spike
 - vendored Go dependency tree
 
-This is an initial record/storage scaffold and tested replication spike, not the
-complete Validatorium validation, release, retrieval, or ingestion system.
-
-## Storage scaffold
-
-The implemented scaffold contains:
-
-1. A local bbolt working store.
-2. An embedded Kubo/IPFS and go-orbit-db replication layer.
-
-UUIDs provide stable record identity. Content addressing provides integrity for
-stored versions; it does not by itself implement Validatorium release manifests or
-runtime validity.
+Writing to the global store is the publication step; there is no separate push.
 
 ## Not yet implemented
 
-- Evaluation that establishes whether linked evidence makes a premise true
-- Admission enforcement that keeps unsupported submissions out of the validated
-  premise store
+- Evaluation that establishes whether linked evidence makes a premise true. The
+  promotion seam consumes attestations; nothing in the repository produces one
+  by executing a method against evidence.
+- Signing of promoted records (Beads decision `validatorium-ilv` is open)
+- Namespaced pointer databases (`namespace:subdomain:...`) over the single
+  pointer store; per-domain stores
 - Release manifests over exact versioned premises, terms, evidence, assets, and
-  artifacts
-- Per-release valid/current premise tags
-- Expiry, TTL, recurrence, and temporal eligibility
-- Runtime/JIT re-validation and immutable runtime attestations
-- Versioned ontology-term records and replacement UUID traversal
+  artifacts, and per-release valid/current premise tags
+- TTL, recurrence, and temporal eligibility beyond attestation expiry
+- Runtime/JIT re-validation workflows
+- Publication of term records and attestations other than through premise
+  promotion; evidence records as a separate record class
 - Extensible provenance-preserving adapters for machine or instrument observations
 - Automated hypothesis-testing orchestration
-- Complete user-facing premise workflows
+- Complete user-facing premise workflows (the CLI opens stores; it does not yet
+  create, evaluate, or promote premises)
 
-The current `Micropublication.ValidateRecord()` method checks record structure; it does
-not establish semantic validity.
+`Micropublication.ValidateRecord()` and `ValidityAttestation.ValidateRecord()`
+check record structure; they do not establish semantic validity.
 
 ## Package layout
 
-- `cmd/val`: CLI skeleton
-- `internal/bbolt`: local bbolt store
-- `internal/ipfsnode`: embedded Kubo node setup
-- `internal/orbit`: go-orbit-db integration
-- `internal/model`: micropublication record model
-- `internal/storage`: storage abstractions
+- `cmd/val`: node CLI
+- `internal/model`: micropublication, attestation and term record models
+- `internal/storage`: tier interfaces, pointer record, content identifiers
+- `internal/storage/memory`: in-process global store for tests
+- `internal/bbolt`: bbolt working store (tier 1) and the earlier key/value scaffold
+- `internal/ipfsnode`: embedded Kubo node (on-disk or mock-network)
+- `internal/orbit`: go-orbit-db global store (tier 2)
+- `internal/promote`: tier-1 to tier-2 admission seam
 - `internal/spike`: replication-spike tests
 
 ## Repository quality gates
@@ -64,11 +76,13 @@ Use the required vendored dependency tree:
 
 ```bash
 go mod verify
+go vet -mod=vendor ./...
 go test -mod=vendor ./...
 go build -mod=vendor ./...
 ```
 
-Run `go mod vendor` after every `go mod tidy` operation.
+`go test -short` skips the multi-node tests. Run `go mod vendor` after every
+`go mod tidy` operation.
 
 ## Next work
 

@@ -106,14 +106,21 @@ content addressing provides integrity for each stored version.
 
 Early development. The repository currently contains:
 
-- a Go record and storage scaffold;
-- a bbolt local store;
-- embedded Kubo and go-orbit-db integration;
-- a tested two-node replication and reconvergence spike; and
-- an initial UUID-based micropublication model.
+- a UUID-based micropublication model with content-addressed immutable versions;
+- immutable validity attestation records and versioned ontology-term records
+  with replacement-pointer traversal;
+- a bbolt working store (drafts, versions, pointers, attestation log, terms);
+- a global store over embedded Kubo and go-orbit-db (blocks by CID, replicated
+  UUID pointer records);
+- a promotion seam that publishes a premise version only under a true,
+  unexpired attestation for that exact version; and
+- tests covering each layer, two-node replication, and end-to-end promotion
+  read back on a peer.
 
-Truth evaluation, release manifests, runtime/JIT re-validation, temporal scheduling,
-and instrument adapters are intended architecture and are not yet complete.
+Truth evaluation (producing attestations from evidence), signing, release
+manifests, runtime/JIT re-validation, temporal scheduling, and instrument
+adapters are intended architecture and are not yet complete. See
+`docs/BUILD_STATE.md` for the exact implemented/not-implemented record.
 
 ## Rights and Licensing
 
