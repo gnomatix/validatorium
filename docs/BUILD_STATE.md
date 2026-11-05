@@ -76,6 +76,9 @@ check record structure; they do not establish semantic validity.
 - `internal/promote`: tier-1 to tier-2 admission seam
 - `internal/spike`: replication-spike tests
 
+Design: `docs/design/two-tier-storage.md` records the storage system design,
+its trade-offs, and the proposed next layers.
+
 ## Repository quality gates
 
 Use the required vendored dependency tree:
