@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"gnomatix/validatorium/internal/model"
+	"gnomatix/validatorium/internal/namespace"
 	"gnomatix/validatorium/internal/storage"
 )
 
@@ -39,6 +40,9 @@ type Result struct {
 	AttestationCID string
 	// Pointer is the global pointer record written for the premise UUID.
 	Pointer storage.Pointer
+	// Namespaced lists the namespaced pointers written, one per requested
+	// namespace, each naming the promoted version.
+	Namespaced []storage.NamespacedPointer
 }
 
 // Promoter wires a working store to a global store.
@@ -64,11 +68,24 @@ type Promoter struct {
 //
 // Any refusal leaves both stores unchanged.
 func (p *Promoter) Promote(ctx context.Context, premiseUUID string, att *model.ValidityAttestation) (Result, error) {
+	return p.PromoteInto(ctx, premiseUUID, att, nil)
+}
+
+// PromoteInto is Promote followed by placing the promoted version into each
+// named namespace, in both tiers. Namespaces organise records; they add no
+// validity, so the admission checks are exactly those of Promote. Every name
+// is validated before anything is written.
+func (p *Promoter) PromoteInto(ctx context.Context, premiseUUID string, att *model.ValidityAttestation, namespaces []namespace.Name) (Result, error) {
 	if p.Working == nil || p.Global == nil {
 		return Result{}, errors.New("promote: working and global stores are required")
 	}
 	if att == nil {
 		return Result{}, errors.New("promote: attestation is required")
+	}
+	for _, ns := range namespaces {
+		if _, err := namespace.Parse(string(ns)); err != nil {
+			return Result{}, fmt.Errorf("promote %s: %w", premiseUUID, err)
+		}
 	}
 	now := time.Now
 	if p.Now != nil {
@@ -148,5 +165,17 @@ func (p *Promoter) Promote(ctx context.Context, premiseUUID string, att *model.V
 	if err := p.Working.DeleteCandidate(ctx, cand.UUID); err != nil {
 		return Result{}, fmt.Errorf("promote %s: remove draft: %w", premiseUUID, err)
 	}
-	return Result{Version: ref, AttestationCID: attCID, Pointer: ptr}, nil
+
+	res := Result{Version: ref, AttestationCID: attCID, Pointer: ptr}
+	for _, ns := range namespaces {
+		np := storage.NamespacedPointer{UUID: cand.UUID, Namespace: ns, CID: ref.CID, UpdatedAt: ptr.UpdatedAt}
+		if err := p.Global.PutNamespacedPointer(ctx, np); err != nil {
+			return res, fmt.Errorf("promote %s: publish into namespace %s: %w", premiseUUID, ns, err)
+		}
+		if err := p.Working.PutNamespacedPointer(ctx, np); err != nil {
+			return res, fmt.Errorf("promote %s: record namespace %s: %w", premiseUUID, ns, err)
+		}
+		res.Namespaced = append(res.Namespaced, np)
+	}
+	return res, nil
 }

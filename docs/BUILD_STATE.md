@@ -28,6 +28,11 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
 - Promotion seam: a candidate is published to the global store only under a
   true, unexpired attestation that names the exact premise version; refusals
   leave both tiers unchanged; version and attestation history is retained
+- Namespace pointer layer: validated `namespace:subdomain:...` names
+  (`internal/namespace`); namespaced pointers map (namespace, UUID) to an exact
+  version CID in both tiers, one record referenceable from many namespaces;
+  promotion can place a version into named namespaces; only the root
+  namespace `validatorium` ships with the binary
 - Tests: unit tests per package, two-node replication of blocks and pointers,
   and an end-to-end test that promotes from bbolt through Kubo/go-orbit-db and
   reads the pointer, version block and attestation block on a second node
@@ -42,8 +47,8 @@ Writing to the global store is the publication step; there is no separate push.
   promotion seam consumes attestations; nothing in the repository produces one
   by executing a method against evidence.
 - Signing of promoted records (Beads decision `validatorium-ilv` is open)
-- Namespaced pointer databases (`namespace:subdomain:...`) over the single
-  pointer store; per-domain stores
+- Core namespace structure beneath the root, private/shared namespaces via
+  native IPFS mechanisms, and per-namespace access policy
 - Release manifests over exact versioned premises, terms, evidence, assets, and
   artifacts, and per-release valid/current premise tags
 - TTL, recurrence, and temporal eligibility beyond attestation expiry
@@ -62,7 +67,8 @@ check record structure; they do not establish semantic validity.
 
 - `cmd/val`: node CLI
 - `internal/model`: micropublication, attestation and term record models
-- `internal/storage`: tier interfaces, pointer record, content identifiers
+- `internal/namespace`: namespace names
+- `internal/storage`: tier interfaces, pointer records, content identifiers
 - `internal/storage/memory`: in-process global store for tests
 - `internal/bbolt`: bbolt working store (tier 1) and the earlier key/value scaffold
 - `internal/ipfsnode`: embedded Kubo node (on-disk or mock-network)

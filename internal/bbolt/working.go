@@ -3,12 +3,14 @@ package bbolt
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"gnomatix/validatorium/internal/model"
+	"gnomatix/validatorium/internal/namespace"
 	"gnomatix/validatorium/internal/storage"
 
 	bolt "go.etcd.io/bbolt"
@@ -23,6 +25,7 @@ import (
 //	attestations_by_premise premiseUUID + 0x00 + attestation UUID -> CID of the attestation bytes
 //	term_versions         CID             -> canonical term record bytes (immutable)
 //	terms                 term UUID       -> CID of the current term record version
+//	namespaces            namespace + 0x00 + UUID -> JSON NamespacedPointer
 //
 // Candidates are the only mutable record class. Versions, term versions and
 // attestations are content-addressed or append-only; a write that would change
@@ -36,7 +39,8 @@ var (
 	bucketAttestIdx       = []byte("attestations_by_premise")
 	bucketTermVersions    = []byte("term_versions")
 	bucketTerms           = []byte("terms")
-	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms}
+	bucketNamespaces      = []byte("namespaces")
+	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms, bucketNamespaces}
 	attestationIndexDelim = byte(0)
 )
 
@@ -286,6 +290,68 @@ func (w *WorkingStore) ResolveTerm(ctx context.Context, uuid string) ([]*model.T
 	return model.ResolveTermReplacements(func(id string) (*model.TermRecord, error) {
 		return w.GetTermRecord(ctx, id)
 	}, uuid)
+}
+
+func (w *WorkingStore) PutNamespacedPointer(ctx context.Context, p storage.NamespacedPointer) error {
+	if _, err := namespace.Parse(string(p.Namespace)); err != nil {
+		return err
+	}
+	if p.UUID == "" || p.CID == "" {
+		return errors.New("working store: namespaced pointer needs UUID and CID")
+	}
+	data, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	return w.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(bucketNamespaces).Put(namespaceKey(p.Namespace, p.UUID), data)
+	})
+}
+
+func (w *WorkingStore) GetNamespacedPointer(ctx context.Context, ns namespace.Name, uuid string) (storage.NamespacedPointer, error) {
+	data, err := w.get(bucketNamespaces, namespaceKey(ns, uuid))
+	if err != nil {
+		return storage.NamespacedPointer{}, err
+	}
+	var p storage.NamespacedPointer
+	if err := json.Unmarshal(data, &p); err != nil {
+		return storage.NamespacedPointer{}, fmt.Errorf("working store: decode namespaced pointer: %w", err)
+	}
+	return p, nil
+}
+
+func (w *WorkingStore) ListNamespace(ctx context.Context, ns namespace.Name) ([]storage.NamespacedPointer, error) {
+	var out []storage.NamespacedPointer
+	prefix := namespaceKey(ns, "")
+	err := w.db.View(func(tx *bolt.Tx) error {
+		c := tx.Bucket(bucketNamespaces).Cursor()
+		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
+			var p storage.NamespacedPointer
+			if err := json.Unmarshal(v, &p); err != nil {
+				return fmt.Errorf("working store: decode namespaced pointer %s: %w", k, err)
+			}
+			out = append(out, p)
+		}
+		return nil
+	})
+	return out, err
+}
+
+func (w *WorkingStore) DeleteNamespacedPointer(ctx context.Context, ns namespace.Name, uuid string) error {
+	return w.db.Update(func(tx *bolt.Tx) error {
+		return tx.Bucket(bucketNamespaces).Delete(namespaceKey(ns, uuid))
+	})
+}
+
+// namespaceKey orders the namespaces bucket by namespace, then UUID. The 0x00
+// delimiter cannot occur in a namespace name, so a prefix scan over one
+// namespace never matches another namespace that shares a textual prefix.
+func namespaceKey(ns namespace.Name, uuid string) []byte {
+	k := make([]byte, 0, len(ns)+1+len(uuid))
+	k = append(k, ns...)
+	k = append(k, attestationIndexDelim)
+	k = append(k, uuid...)
+	return k
 }
 
 // get copies a value out of a bucket so it stays valid after the transaction.

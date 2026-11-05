@@ -13,6 +13,7 @@ import (
 	"gnomatix/validatorium/internal/bbolt"
 	"gnomatix/validatorium/internal/ipfsnode"
 	"gnomatix/validatorium/internal/model"
+	"gnomatix/validatorium/internal/namespace"
 	"gnomatix/validatorium/internal/orbit"
 	"gnomatix/validatorium/internal/storage"
 )
@@ -71,9 +72,10 @@ func TestPromoteThroughOrbitReplicatesToPeer(t *testing.T) {
 	att, _ := model.NewAttestation(cand.UUID, versionCID, model.ResultTrue, "evaluator:test", "ipfs://method", time.Now())
 
 	p := &Promoter{Working: ws, Global: gsA}
-	res, err := p.Promote(ctx, cand.UUID, att)
+	testNS := namespace.MustParse("validatorium:test")
+	res, err := p.PromoteInto(ctx, cand.UUID, att, []namespace.Name{testNS})
 	if err != nil {
-		t.Fatalf("Promote: %v", err)
+		t.Fatalf("PromoteInto: %v", err)
 	}
 
 	// Node B joins the pointer store by address and waits for the pointer.
@@ -130,5 +132,27 @@ func TestPromoteThroughOrbitReplicatesToPeer(t *testing.T) {
 	gotAtt, err := model.AttestationFromBytes(ab)
 	if err != nil || gotAtt.PremiseVersionCID != ptr.CID || gotAtt.Result != model.ResultTrue {
 		t.Fatalf("replicated attestation drift: %+v %v", gotAtt, err)
+	}
+
+	// The namespaced pointer written during promotion replicates too.
+	nsDeadline := time.After(30 * time.Second)
+	for {
+		np, err := gsB.GetNamespacedPointer(ctx, testNS, cand.UUID)
+		if err == nil {
+			if np.CID != res.Version.CID {
+				t.Fatalf("replicated namespaced pointer = %+v, want cid %s", np, res.Version.CID)
+			}
+			break
+		}
+		if !errors.Is(err, storage.ErrNotFound) {
+			t.Fatalf("B GetNamespacedPointer: %v", err)
+		}
+		select {
+		case <-time.After(500 * time.Millisecond):
+		case <-nsDeadline:
+			t.Fatal("timed out waiting for namespaced pointer replication")
+		case <-ctx.Done():
+			t.Fatal("context cancelled")
+		}
 	}
 }

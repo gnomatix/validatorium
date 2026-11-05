@@ -36,6 +36,7 @@ import (
 	mh "github.com/multiformats/go-multihash"
 
 	"gnomatix/validatorium/internal/ipfsnode"
+	"gnomatix/validatorium/internal/namespace"
 	"gnomatix/validatorium/internal/storage"
 )
 
@@ -47,10 +48,12 @@ const DefaultBlockFetchTimeout = 10 * time.Second
 // Options tunes how a GlobalStore is opened.
 type Options struct {
 	// WriteAccess lists the OrbitDB identity IDs allowed to write to the
-	// pointer store. When empty, only the opening identity may write. The
-	// list is part of the store manifest, so every peer that opens the same
-	// address must pass the same list (or open by address and let the
-	// manifest supply it).
+	// pointer store and to every namespace store this GlobalStore opens.
+	// When empty, only the opening identity may write. The list is part of
+	// each store manifest, so every peer that opens the same address must
+	// pass the same list (or open by address and let the manifest supply
+	// it). Namespace stores are always opened by name, so peers that should
+	// share a namespace must pass the same list in the same order.
 	WriteAccess []string
 	// BlockFetchTimeout overrides DefaultBlockFetchTimeout when positive.
 	BlockFetchTimeout time.Duration
@@ -60,14 +63,22 @@ type Options struct {
 }
 
 // GlobalStore implements storage.GlobalStore over Kubo and go-orbit-db.
+//
+// Pointer records live in one Documents store (docs). Namespaced pointers
+// live in one further Documents store per namespace, opened lazily on first
+// use and cached in nsStores; see namespace.go.
 type GlobalStore struct {
 	api     coreiface.CoreAPI
 	odb     iface.OrbitDB
 	docs    iface.DocumentStore
+	dir     string
+	write   []string
 	fetchTO time.Duration
 	pin     bool
-	closeMu sync.Mutex
-	closed  bool
+
+	mu       sync.Mutex
+	closed   bool
+	nsStores map[namespace.Name]iface.DocumentStore
 }
 
 var _ storage.GlobalStore = (*GlobalStore)(nil)
@@ -120,11 +131,14 @@ func Open(ctx context.Context, node *ipfsnode.Node, dir string, dbNameOrAddress 
 	}
 
 	return &GlobalStore{
-		api:     api,
-		odb:     odb,
-		docs:    docs,
-		fetchTO: to,
-		pin:     opts.PinBlocks,
+		api:      api,
+		odb:      odb,
+		docs:     docs,
+		dir:      dir,
+		write:    append([]string(nil), write...),
+		fetchTO:  to,
+		pin:      opts.PinBlocks,
+		nsStores: map[namespace.Name]iface.DocumentStore{},
 	}, nil
 }
 
@@ -228,16 +242,23 @@ func (g *GlobalStore) GetPointer(ctx context.Context, uuid string) (storage.Poin
 	return p, nil
 }
 
-// Close closes the pointer store and the OrbitDB instance. The IPFS node is
-// left running for its owner to close. Close is idempotent.
+// Close closes the pointer store, every namespace store opened so far, and
+// the OrbitDB instance. The IPFS node is left running for its owner to close.
+// Close is idempotent.
 func (g *GlobalStore) Close() error {
-	g.closeMu.Lock()
-	defer g.closeMu.Unlock()
+	g.mu.Lock()
+	defer g.mu.Unlock()
 	if g.closed {
 		return nil
 	}
 	g.closed = true
 	var errs []error
+	for ns, ds := range g.nsStores {
+		if err := ds.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("orbit: close namespace store %s: %w", ns, err))
+		}
+	}
+	g.nsStores = nil
 	if err := g.docs.Close(); err != nil {
 		errs = append(errs, fmt.Errorf("orbit: close pointer store: %w", err))
 	}
@@ -251,26 +272,42 @@ func (g *GlobalStore) Close() error {
 // expects, via its JSON encoding so the "_id" key and field names match the
 // struct tags exactly.
 func pointerToDoc(p storage.Pointer) (map[string]interface{}, error) {
-	b, err := json.Marshal(p)
-	if err != nil {
-		return nil, fmt.Errorf("orbit: marshal pointer: %w", err)
-	}
-	var doc map[string]interface{}
-	if err := json.Unmarshal(b, &doc); err != nil {
-		return nil, fmt.Errorf("orbit: pointer to document: %w", err)
-	}
-	return doc, nil
+	return structToDoc(p, "pointer")
 }
 
 // docToPointer converts a Documents-store value back into a Pointer.
 func docToPointer(doc interface{}) (storage.Pointer, error) {
-	b, err := json.Marshal(doc)
-	if err != nil {
-		return storage.Pointer{}, fmt.Errorf("orbit: marshal document: %w", err)
-	}
 	var p storage.Pointer
-	if err := json.Unmarshal(b, &p); err != nil {
-		return storage.Pointer{}, fmt.Errorf("orbit: document to pointer: %w", err)
+	if err := docToStruct(doc, &p, "pointer"); err != nil {
+		return storage.Pointer{}, err
 	}
 	return p, nil
+}
+
+// structToDoc converts a record struct into the map form the Documents
+// store expects, via its JSON encoding so the "_id" key and field names
+// match the struct tags exactly. what names the record kind in errors.
+func structToDoc(v interface{}, what string) (map[string]interface{}, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("orbit: marshal %s: %w", what, err)
+	}
+	var doc map[string]interface{}
+	if err := json.Unmarshal(b, &doc); err != nil {
+		return nil, fmt.Errorf("orbit: %s to document: %w", what, err)
+	}
+	return doc, nil
+}
+
+// docToStruct converts a Documents-store value back into the record struct
+// that out points to.
+func docToStruct(doc interface{}, out interface{}, what string) error {
+	b, err := json.Marshal(doc)
+	if err != nil {
+		return fmt.Errorf("orbit: marshal document: %w", err)
+	}
+	if err := json.Unmarshal(b, out); err != nil {
+		return fmt.Errorf("orbit: document to %s: %w", what, err)
+	}
+	return nil
 }

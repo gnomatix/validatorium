@@ -19,6 +19,7 @@ import (
 	"errors"
 
 	"gnomatix/validatorium/internal/model"
+	"gnomatix/validatorium/internal/namespace"
 )
 
 var (
@@ -67,8 +68,40 @@ type Pointer struct {
 	UpdatedAt string `json:"updatedAt"`
 }
 
+// NamespacedPointer places one exact record version inside a namespace. The
+// same UUID may appear in many namespaces, each naming the version that
+// namespace references. The JSON tags match the Documents-store convention:
+// "_id" is the key, which is the UUID within the namespace's own store.
+type NamespacedPointer struct {
+	// UUID is the record identity and the key within the namespace store.
+	UUID string `json:"_id"`
+	// Namespace is the namespace this pointer belongs to.
+	Namespace namespace.Name `json:"namespace"`
+	// CID is the exact record version referenced from this namespace.
+	CID string `json:"cid"`
+	// UpdatedAt is the RFC 3339 time this pointer was written.
+	UpdatedAt string `json:"updatedAt"`
+}
+
+// NamespaceStore is the pointer layer over UUID-identified records, shared by
+// both tiers. Removing a namespaced pointer never removes the record.
+type NamespaceStore interface {
+	// PutNamespacedPointer stores or replaces the pointer for (namespace, UUID).
+	PutNamespacedPointer(ctx context.Context, p NamespacedPointer) error
+	// GetNamespacedPointer returns the pointer for (namespace, UUID) or ErrNotFound.
+	GetNamespacedPointer(ctx context.Context, ns namespace.Name, uuid string) (NamespacedPointer, error)
+	// ListNamespace returns every pointer in a namespace in UUID order. An
+	// unknown or empty namespace yields an empty list, not an error.
+	ListNamespace(ctx context.Context, ns namespace.Name) ([]NamespacedPointer, error)
+	// DeleteNamespacedPointer removes a pointer. Deleting an absent pointer is
+	// not an error.
+	DeleteNamespacedPointer(ctx context.Context, ns namespace.Name, uuid string) error
+}
+
 // WorkingStore is the tier-1 local working store.
 type WorkingStore interface {
+	NamespaceStore
+
 	// PutCandidate stores or replaces a mutable local draft keyed by its UUID.
 	PutCandidate(ctx context.Context, m *model.Micropublication) error
 	// GetCandidate returns the draft for a UUID or ErrNotFound.
@@ -113,8 +146,10 @@ type WorkingStore interface {
 }
 
 // GlobalStore is the tier-2 boundary: content-addressed immutable blocks plus
-// replicated UUID pointer records.
+// replicated UUID pointer records and replicated per-namespace pointer stores.
 type GlobalStore interface {
+	NamespaceStore
+
 	// PutBlock stores immutable bytes and returns their CID. Implementations
 	// must return a CID equal to ContentID(data) so that tier-1 version
 	// references and tier-2 block addresses agree.
