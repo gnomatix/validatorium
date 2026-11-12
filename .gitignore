@@ -10,3 +10,6 @@
 /ipfs_repo/
 /orbitdb_repo/
 /working_store.db
+
+# Plugin hook logs written into the workspace
+/.claude/logs/
