@@ -41,7 +41,16 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   versions as blocks, requires the tagged premise versions to be in the global
   store already, and lists the manifest under its label in
   `validatorium:releases`; a published label never changes
-- Tests: unit tests per package, two-node replication of blocks and pointers,
+- Evaluation (`internal/evaluate`): an `Evaluator` interface and a registry
+  that selects the evaluator by the premise's MP:Method reference and returns
+  an immutable attestation for the exact premise version, without writing.
+  One evaluator exists: runtime file digest
+  (`urn:validatorium:method:file-sha256`), which returns true on a SHA-256
+  match, false on a mismatch, and indeterminate when the file cannot be read,
+  and records the content identifier of the bytes it read as evidence
+- Tests: an end-to-end test evaluates a real file, promotes on the true
+  result, refuses the false one, and builds and publishes a release; unit
+  tests per package, two-node replication of blocks and pointers,
   and an end-to-end test that promotes from bbolt through Kubo/go-orbit-db and
   reads the pointer, version block and attestation block on a second node
 - two-node replication and partition-reconvergence spike
@@ -51,9 +60,8 @@ Writing to the global store is the publication step; there is no separate push.
 
 ## Not yet implemented
 
-- Evaluation that establishes whether linked evidence makes a premise true. The
-  promotion seam consumes attestations; nothing in the repository produces one
-  by executing a method against evidence.
+- Evaluators beyond the runtime file digest: document inspection, dataset
+  lookup, reproducible computation, instrument observation.
 - Signing of promoted records (Beads decision `validatorium-ilv` is open)
 - Core namespace structure beneath the root, private/shared namespaces via
   native IPFS mechanisms, and per-namespace access policy
@@ -83,6 +91,7 @@ check record structure; they do not establish semantic validity.
 - `internal/orbit`: go-orbit-db global store (tier 2)
 - `internal/promote`: tier-1 to tier-2 admission seam
 - `internal/release`: release manifest builder and publication
+- `internal/evaluate`: evaluator interface, method registry, file-digest evaluator
 - `internal/spike`: replication-spike tests
 
 Design: `docs/design/two-tier-storage.md` records the storage system design,
