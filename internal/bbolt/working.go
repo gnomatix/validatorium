@@ -405,3 +405,16 @@ func attestationIndexKey(premiseUUID, attestationUUID string) []byte {
 	k = append(k, attestationUUID...)
 	return k
 }
+
+// ListCurrent returns the UUIDs of every premise with a current published
+// version, in key order.
+func (w *WorkingStore) ListCurrent(ctx context.Context) ([]string, error) {
+	var out []string
+	err := w.db.View(func(tx *bolt.Tx) error {
+		return tx.Bucket(bucketCurrent).ForEach(func(k, _ []byte) error {
+			out = append(out, string(k))
+			return nil
+		})
+	})
+	return out, err
+}
