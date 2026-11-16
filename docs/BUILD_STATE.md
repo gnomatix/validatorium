@@ -41,6 +41,18 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   versions as blocks, requires the tagged premise versions to be in the global
   store already, and lists the manifest under its label in
   `validatorium:releases`; a published label never changes
+- Wikidata (`internal/wikidata`): revision-pinned entity reads; a structured
+  snapshot that cites the source as a pointer (revision-pinned URI plus the
+  content identifier of the bytes read) with an equivalence re-check; term
+  records pinned to an entity revision; and a `wikidata-statement` evaluator
+  whose claim is about what the pinned revision holds
+- Self-certification registry for the ITVB Seal of Truth: a
+  `SelfCertification` record class, separate from premise validity, that is
+  versioned and can be obsoleted by anyone with the obsoleting agent and
+  reason recorded; `val api` serves `GET /api/verification?url=` in the ITVB
+  response format (with ITVB headers and CORS for browser plugins), plus
+  registration and obsoleting endpoints. Signer identity is recorded but not
+  yet verified (GPG verification not implemented)
 - Evaluation (`internal/evaluate`): an `Evaluator` interface and a registry
   that selects the evaluator by the premise's MP:Method reference and returns
   an immutable attestation for the exact premise version, without writing.
@@ -82,7 +94,7 @@ check record structure; they do not establish semantic validity.
 
 ## Package layout
 
-- `cmd/val`: node CLI; subcommands `create`, `evaluate`, `attestations`, `release` for the local workflow
+- `cmd/val`: node CLI; subcommands `create`, `evaluate`, `attestations`, `release` for the local workflow, and `api` for the self-certification registry API
 - `internal/model`: micropublication, attestation and term record models
 - `internal/namespace`: namespace names
 - `internal/storage`: tier interfaces, pointer records, content identifiers
@@ -93,6 +105,8 @@ check record structure; they do not establish semantic validity.
 - `internal/promote`: tier-1 to tier-2 admission seam
 - `internal/release`: release manifest builder and publication
 - `internal/evaluate`: evaluator interface, method registry, file-digest evaluator
+- `internal/wikidata`: Wikidata pointer records, term resolution, statement evaluator
+- `internal/api`: self-certification registry HTTP API (ITVB response format)
 - `internal/spike`: replication-spike tests
 
 Design: `docs/design/two-tier-storage.md` records the storage system design,

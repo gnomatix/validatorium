@@ -26,6 +26,9 @@ import (
 //	term_versions         CID             -> canonical term record bytes (immutable)
 //	terms                 term UUID       -> CID of the current term record version
 //	namespaces            namespace + 0x00 + UUID -> JSON NamespacedPointer
+//	cert_versions         CID             -> canonical self-certification bytes (immutable)
+//	certs                 cert UUID       -> CID of the current self-certification version
+//	certs_by_subject      subject + 0x00 + cert UUID -> empty (index)
 //
 // Candidates are the only mutable record class. Versions, term versions and
 // attestations are content-addressed or append-only; a write that would change
@@ -40,7 +43,10 @@ var (
 	bucketTermVersions    = []byte("term_versions")
 	bucketTerms           = []byte("terms")
 	bucketNamespaces      = []byte("namespaces")
-	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms, bucketNamespaces}
+	bucketCertVersions    = []byte("cert_versions")
+	bucketCerts           = []byte("certs")
+	bucketCertsBySubject  = []byte("certs_by_subject")
+	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms, bucketNamespaces, bucketCertVersions, bucketCerts, bucketCertsBySubject}
 	attestationIndexDelim = byte(0)
 )
 

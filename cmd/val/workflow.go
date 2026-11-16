@@ -11,10 +11,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"gnomatix/validatorium/internal/api"
 	"gnomatix/validatorium/internal/bbolt"
 	"gnomatix/validatorium/internal/evaluate"
 	"gnomatix/validatorium/internal/model"
@@ -28,6 +30,25 @@ var subcommands = map[string]func(args []string, out io.Writer) error{
 	"evaluate":     cmdEvaluate,
 	"attestations": cmdAttestations,
 	"release":      cmdRelease,
+	"api":          cmdAPI,
+}
+
+// cmdAPI serves the self-certification registry HTTP API until interrupted.
+func cmdAPI(args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("api", flag.ContinueOnError)
+	ws := openWS(fs)
+	listen := fs.String("listen", "127.0.0.1:8085", "address to listen on")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	st, err := bbolt.OpenWorkingStore(*ws)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	srv := &http.Server{Addr: *listen, Handler: &api.Server{Store: st}, ReadHeaderTimeout: 10 * time.Second}
+	fmt.Fprintln(out, "validatorium api listening on http://"+*listen)
+	return srv.ListenAndServe()
 }
 
 func openWS(fs *flag.FlagSet) *string {
