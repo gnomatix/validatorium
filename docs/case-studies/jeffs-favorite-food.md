@@ -83,6 +83,35 @@ terms:
 }
 ```
 
+## Who is Jeff?
+
+The first question the example raises. Jeff matters in two separate roles.
+
+**Jeff as author.** Identity is attribution only and pseudonymous (Beads
+decision `validatorium-ilv`). What is needed from Jeff the author is a GPG key
+that signs his records, so each action traces to the same author; nothing
+else. His legal name, credentials, reputation and notability are not required
+and carry no evidential weight. The key exists so that, if it is ever found to
+have corrupted data, every record it signed can be listed and re-examined.
+
+**Jeff as subject.** "Jeff's favorite food is Pop-Tarts" is about Jeff, so the
+record must say which Jeff. The simplest reference is the author's own key:
+these are premises about the person who signed them. All of Jeff's premises
+about himself then link together without his proving who he is.
+
+**What is not done.** Jeff is not refused. He needs no permission, credentials
+or notability: only a key and well-formed premises.
+
+**What is protected.** These are personal facts about a private person.
+Observations are local by default and private data is not replicated
+implicitly (`docs/specs/distributed-datastore.md` §8). Jeff's premises about
+himself stay on his own node unless he publishes them.
+
+**"My name's Jeff" itself** is recorded like his other self-reports. If Jeff
+wants it checkable, he can link evidence such as an identity document. Nothing
+requires it; the system works the same whether or not "Jeff" is his legal
+name.
+
 ## What it shows
 
 - **Even a casual sentence carries many premises.** Writing it into the
