@@ -35,6 +35,31 @@ type ImportTerm struct {
 	Sense       string `json:"sense"`
 }
 
+// ImportCitation is a source the article itself cites for a premise.
+type ImportCitation struct {
+	URL   string `json:"url"`
+	DOI   string `json:"doi"`
+	PMID  string `json:"pmid"`
+	ISBN  string `json:"isbn"`
+	Title string `json:"title"`
+}
+
+// reference returns a resolvable pointer for the citation, preferring
+// persistent identifiers, or "" when it has none.
+func (c ImportCitation) reference() string {
+	switch {
+	case strings.TrimSpace(c.DOI) != "":
+		return "https://doi.org/" + strings.TrimSpace(c.DOI)
+	case strings.TrimSpace(c.PMID) != "":
+		return "https://pubmed.ncbi.nlm.nih.gov/" + strings.TrimSpace(c.PMID) + "/"
+	case strings.TrimSpace(c.URL) != "":
+		return strings.TrimSpace(c.URL)
+	case strings.TrimSpace(c.ISBN) != "":
+		return "urn:isbn:" + strings.ReplaceAll(strings.TrimSpace(c.ISBN), "-", "")
+	}
+	return ""
+}
+
 // ImportRecord is one line of worker output (see ingest/wikipedia/WORKER_PROMPT.md).
 type ImportRecord struct {
 	Source    ImportSource           `json:"source"`
@@ -45,6 +70,7 @@ type ImportRecord struct {
 	Scope     map[string]interface{} `json:"scope"`
 	Quote     string                 `json:"quote"`
 	DependsOn []string               `json:"depends_on"`
+	Citations []ImportCitation       `json:"citations"`
 }
 
 // premiseRefPrefix marks a support-graph entry that names another premise.
@@ -126,6 +152,11 @@ func importJSONL(ctx context.Context, st *bbolt.WorkingStore, in io.Reader, agen
 				m.Claim.Terms = append(m.Claim.Terms, model.TermGrounding{SurfaceForm: t.SurfaceForm, OntologyURI: t.OntologyURI, Sense: t.Sense})
 			}
 			m.SupportGraph = append(m.SupportGraph, model.Evidence{Kind: model.EvidenceData, Reference: r.Source.URL, Note: r.Quote})
+			for _, c := range r.Citations {
+				if ref := c.reference(); ref != "" {
+					m.SupportGraph = append(m.SupportGraph, model.Evidence{Kind: model.EvidenceData, Reference: ref, Note: "cited by the source article: " + c.Title})
+				}
+			}
 			for _, dep := range r.DependsOn {
 				if did, ok := ids[dep]; ok {
 					m.SupportGraph = append(m.SupportGraph, model.Evidence{Kind: model.EvidenceData, Reference: premiseRefPrefix + did, Note: "depends on premise " + dep})

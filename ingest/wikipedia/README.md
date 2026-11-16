@@ -10,9 +10,19 @@ the exact article revision it came from, as a pointer to the source.
 1. **Dump.** `enwiki-latest-pages-articles-multistream.xml.bz2` and its index
    from <https://dumps.wikimedia.org/enwiki/latest/>, checked against the
    published checksums.
-2. **Extract articles** to one JSON object per line with `wiki`, `page_id`,
-   `title`, `rev_id` and plain `text` (wikitext markup removed). Any
-   extractor that keeps the revision id works.
+2. **Extract articles** with `wikiextract` (in this repository,
+   `cmd/wikiextract`):
+
+   ```sh
+   go build -o wikiextract ./cmd/wikiextract
+   ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 > articles.jsonl
+   ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 -max 500 > sample.jsonl
+   ```
+
+   One JSON object per article: `wiki`, `page_id`, `title`, `rev_id`, plain
+   `text`, and `refs`. Citations are kept: each `<ref>` becomes a `[ref:N]`
+   marker in the text and an entry in `refs` with its URL, DOI, PMID, ISBN
+   and title. Redirects and non-article pages are skipped.
 3. **Split** the article file into chunks, e.g. `split -l 1000 -d -a 5
    articles.jsonl chunks/articles.`
 4. **Decompose** each article with a model using
@@ -53,6 +63,7 @@ worth automating between iterations:
 | `statement` | the premise statement |
 | `terms` | the statement's term groundings |
 | `source.url`, `quote` | support-graph entry (kind `data`) pointing at the revision, with the quote as its note |
+| `citations` | support-graph entries pointing at each cited source (DOI, then PMID, then URL, then ISBN) |
 | `depends_on` | support-graph entries `urn:validatorium:premise:<uuid>` |
 | `kind: conclusion` | not stored as a premise (counted only) |
 | `scope` | kept in the JSONL only; the statement text carries the scope |

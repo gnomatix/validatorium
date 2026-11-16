@@ -15,7 +15,7 @@ states, one assertion at a time, and point to where it says it.
 One JSON object:
 
 ```json
-{"wiki": "enwiki", "page_id": 736, "title": "Albert Einstein", "rev_id": 1250000001, "text": "<plain article text>"}
+{"wiki": "enwiki", "page_id": 736, "title": "Albert Einstein", "rev_id": 1250000001, "text": "<plain article text with [ref:N] markers>", "refs": [{"n": 1, "url": "…", "doi": "…", "pmid": "…", "isbn": "…", "title": "…", "raw": "…"}]}
 ```
 
 ## Output
@@ -31,8 +31,12 @@ fences). Each object:
  "terms": [{"surface_form": "Albert Einstein", "ontology_uri": "http://www.wikidata.org/entity/Q937", "sense": "the physicist"}],
  "scope": {"time": "1879-03-14"},
  "quote": "Albert Einstein (14 March 1879 – 18 April 1955)",
- "depends_on": []}
+ "depends_on": [],
+ "citations": [{"url": "…", "doi": "…", "pmid": "…", "isbn": "…", "title": "…"}]}
 ```
+
+Input text carries citation markers like `[ref:3]` where the article cites a
+source; `refs` lists those sources.
 
 Copy `source` from the input; `url` is always
 `https://en.wikipedia.org/w/index.php?oldid=<rev_id>`.
@@ -58,8 +62,13 @@ Copy `source` from the input; `url` is always
    1,203,000", not "X has a large population". If the article itself hedges
    ("about", "estimated"), keep the article's exact qualifier.
 6. **Quote the source exactly.** `quote` is the shortest verbatim span of
-   the input text that states the premise, copied character for character.
-   Never paraphrase in `quote`.
+   the input text that states the premise, copied character for character,
+   leaving out any `[ref:N]` markers. Never paraphrase in `quote`.
+6a. **Carry the article's citations.** If the sentence you quote is followed
+   by `[ref:N]` markers, copy each referenced entry from `refs` into
+   `citations` (fields `url`, `doi`, `pmid`, `isbn`, `title`; leave out
+   `n` and `raw`). If the sentence has no markers, use `[]`. Never invent a
+   citation.
 7. **Ground significant terms.** For each named entity or technical term,
    add a `terms` entry: `surface_form` is the word or phrase exactly as in
    your statement; `ontology_uri` is a Wikidata entity URI

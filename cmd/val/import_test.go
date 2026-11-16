@@ -12,7 +12,7 @@ import (
 )
 
 const sampleJSONL = `{"source":{"wiki":"enwiki","page_id":736,"title":"Albert Einstein","rev_id":1250000001,"url":"https://en.wikipedia.org/w/index.php?oldid=1250000001"},"local_id":"p1","kind":"premise","statement":"Albert Einstein was born on 14 March 1879.","terms":[{"surface_form":"Albert Einstein","ontology_uri":"http://www.wikidata.org/entity/Q937"}],"quote":"Albert Einstein (14 March 1879 – 18 April 1955)"}
-{"source":{"wiki":"enwiki","page_id":736,"title":"Albert Einstein","rev_id":1250000001,"url":"https://en.wikipedia.org/w/index.php?oldid=1250000001"},"local_id":"p2","kind":"premise","statement":"Albert Einstein was born in Ulm.","depends_on":["p1"],"quote":"born in Ulm"}
+{"source":{"wiki":"enwiki","page_id":736,"title":"Albert Einstein","rev_id":1250000001,"url":"https://en.wikipedia.org/w/index.php?oldid=1250000001"},"local_id":"p2","kind":"premise","statement":"Albert Einstein was born in Ulm.","depends_on":["p1"],"quote":"born in Ulm","citations":[{"doi":"10.1000/xyz","title":"Einstein"}]}
 {"source":{"wiki":"enwiki","page_id":736,"title":"Albert Einstein","rev_id":1250000001,"url":"https://en.wikipedia.org/w/index.php?oldid=1250000001"},"local_id":"c1","kind":"conclusion","statement":"Albert Einstein was German-born."}
 not json
 {"source":{"wiki":"enwiki","rev_id":0},"local_id":"x","kind":"premise","statement":"no revision"}
@@ -47,9 +47,23 @@ func TestImportJSONL(t *testing.T) {
 		if c.SupportGraph[0].Reference != "https://en.wikipedia.org/w/index.php?oldid=1250000001" {
 			t.Fatalf("source pointer missing: %+v", c.SupportGraph)
 		}
-		if len(c.SupportGraph) == 2 && strings.HasPrefix(c.SupportGraph[1].Reference, premiseRefPrefix) {
-			withDep++
+		for _, e := range c.SupportGraph {
+			if strings.HasPrefix(e.Reference, premiseRefPrefix) {
+				withDep++
+			}
 		}
+	}
+	var cited int
+	for _, id := range ids {
+		c, _ := st.GetCandidate(ctx, id)
+		for _, e := range c.SupportGraph {
+			if e.Reference == "https://doi.org/10.1000/xyz" {
+				cited++
+			}
+		}
+	}
+	if cited != 1 {
+		t.Fatalf("citation pointers: %d", cited)
 	}
 	if withDep != 1 {
 		t.Fatalf("dependency links: %d", withDep)
