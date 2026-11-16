@@ -24,11 +24,11 @@ SHA-256 values are in `propaganda-analysis/MANIFEST.tsv`.
 
 Source pages: `https://archive.org/details/<identifier>`.
 
-Each folder holds the Internet Archive's OCR text (`*_djvu.txt`), which is
-stored in git. The scanned PDFs (up to 131 MB each) are not stored in git:
-`propaganda-analysis/MANIFEST.tsv` lists each PDF's Internet Archive URL,
-size, SHA-1 and SHA-256, and `propaganda-analysis/fetch.sh` downloads them
-into place and verifies them. The one small PDF (0.4 MB) is stored in git.
+Each folder holds the scanned PDF, stored with Git LFS (run `git lfs pull`
+after cloning), and the Internet Archive's OCR text (`*_djvu.txt`), stored
+as plain text. If the LFS objects are not available, run
+`propaganda-analysis/fetch.sh`: it downloads each PDF from the Internet
+Archive URL in `propaganda-analysis/MANIFEST.tsv` and verifies its SHA-256.
 The OCR text is machine output and contains recognition errors; quote from
 the PDF.
 

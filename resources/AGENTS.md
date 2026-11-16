@@ -37,10 +37,11 @@ Propaganda* (1939), and *Propaganda, How to Recognize It and Deal With It*
   called prebunking or inoculation.
 
 All items are public domain (Creative Commons Public Domain Mark 1.0 on the
-Internet Archive). Each folder has the OCR text (`*_djvu.txt`) in git.
-The scanned PDFs are too large for git; run `propaganda-analysis/fetch.sh`
-to download them from the Internet Archive and verify each against the
-SHA-256 in `propaganda-analysis/MANIFEST.tsv`. Search the OCR text, but quote
+Internet Archive). Each folder has the scanned PDF (Git LFS; run
+`git lfs pull` after cloning) and the OCR text (`*_djvu.txt`). If the PDFs
+are missing, run `propaganda-analysis/fetch.sh`: it downloads them from the
+Internet Archive and verifies each against the SHA-256 in
+`propaganda-analysis/MANIFEST.tsv`. Search the OCR text, but quote
 from the PDF: the OCR has recognition errors.
 
 ## references.md
