@@ -33,6 +33,14 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   version CID in both tiers, one record referenceable from many namespaces;
   promotion can place a version into named namespaces; only the root
   namespace `validatorium` ships with the binary
+- Release manifests (`internal/release`): a builder tags a premise only when,
+  at the release time, it is current, a true unexpired attestation names its
+  exact current version, every term record that attestation relied on is
+  current, and every premise it depends on is also tagged; excluded candidates
+  are reported with reasons. Publishing stores the manifest and its exact term
+  versions as blocks, requires the tagged premise versions to be in the global
+  store already, and lists the manifest under its label in
+  `validatorium:releases`; a published label never changes
 - Tests: unit tests per package, two-node replication of blocks and pointers,
   and an end-to-end test that promotes from bbolt through Kubo/go-orbit-db and
   reads the pointer, version block and attestation block on a second node
@@ -49,8 +57,8 @@ Writing to the global store is the publication step; there is no separate push.
 - Signing of promoted records (Beads decision `validatorium-ilv` is open)
 - Core namespace structure beneath the root, private/shared namespaces via
   native IPFS mechanisms, and per-namespace access policy
-- Release manifests over exact versioned premises, terms, evidence, assets, and
-  artifacts, and per-release valid/current premise tags
+- Evidence, asset and artifact versions in release manifests (manifests list
+  premises, attestations and term records only)
 - TTL, recurrence, and temporal eligibility beyond attestation expiry
 - Runtime/JIT re-validation workflows
 - Publication of term records and attestations other than through premise
@@ -74,6 +82,7 @@ check record structure; they do not establish semantic validity.
 - `internal/ipfsnode`: embedded Kubo node (on-disk or mock-network)
 - `internal/orbit`: go-orbit-db global store (tier 2)
 - `internal/promote`: tier-1 to tier-2 admission seam
+- `internal/release`: release manifest builder and publication
 - `internal/spike`: replication-spike tests
 
 Design: `docs/design/two-tier-storage.md` records the storage system design,
