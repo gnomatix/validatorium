@@ -61,3 +61,32 @@ func TestFingerprintAndSignatures(t *testing.T) {
 		t.Fatal("garbage key accepted")
 	}
 }
+
+func TestSignerRoundTrip(t *testing.T) {
+	e, pub := testKey(t, "node")
+	var priv bytes.Buffer
+	w, _ := armor.Encode(&priv, openpgp.PrivateKeyType, nil)
+	if err := e.SerializePrivate(w, nil); err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+	s, err := NewSigner(priv.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fp, _ := Fingerprint(pub)
+	if s.Fingerprint() != fp {
+		t.Fatalf("fingerprint %s, want %s", s.Fingerprint(), fp)
+	}
+	data := []byte(`{"canonical":"bytes"}`)
+	sig, err := s.SignDetached(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := VerifyDetached(pub, string(data), sig); err != nil || got != fp {
+		t.Fatalf("verify: %q %v", got, err)
+	}
+	if _, err := NewSigner(pub); err == nil {
+		t.Fatal("public key accepted as signer")
+	}
+}

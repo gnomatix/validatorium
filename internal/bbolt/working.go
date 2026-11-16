@@ -50,7 +50,10 @@ var (
 	bucketCertsBySubject  = []byte("certs_by_subject")
 	bucketIdentityVers    = []byte("identity_versions")
 	bucketIdentities      = []byte("identities")
-	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms, bucketNamespaces, bucketCertVersions, bucketCerts, bucketCertsBySubject, bucketIdentityVers, bucketIdentities}
+	bucketSignatures      = []byte("signatures")
+	bucketSigsBySigner    = []byte("signatures_by_signer")
+	bucketSigsBySubject   = []byte("signatures_by_subject")
+	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms, bucketNamespaces, bucketCertVersions, bucketCerts, bucketCertsBySubject, bucketIdentityVers, bucketIdentities, bucketSignatures, bucketSigsBySigner, bucketSigsBySubject}
 	attestationIndexDelim = byte(0)
 )
 
