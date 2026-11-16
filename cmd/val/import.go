@@ -50,13 +50,14 @@ type ImportRecord struct {
 // premiseRefPrefix marks a support-graph entry that names another premise.
 const premiseRefPrefix = "urn:validatorium:premise:"
 
-// importNamespace is the UUIDv5 namespace for imported premises, so the same
-// source revision and local id always yield the same premise UUID and a
-// re-run import never duplicates records.
+// importNamespace is the UUIDv5 namespace for imported premises. The same
+// worker, source revision and local id always yield the same premise UUID, so
+// re-running an import never duplicates records, while different workers
+// decomposing the same article keep separate records that can be compared.
 var importNamespace = [16]byte{0x6b, 0x2f, 0x0d, 0x4e, 0x8a, 0x51, 0x4c, 0x7e, 0x9b, 0x13, 0x55, 0x0a, 0x21, 0xc4, 0x6e, 0x90}
 
-func importUUID(r *ImportRecord) string {
-	key := fmt.Sprintf("%s|%d|%d|%s", r.Source.Wiki, r.Source.PageID, r.Source.RevID, r.LocalID)
+func importUUID(agent string, r *ImportRecord) string {
+	key := fmt.Sprintf("%s|%s|%d|%d|%s", agent, r.Source.Wiki, r.Source.PageID, r.Source.RevID, r.LocalID)
 	h := sha1.New()
 	h.Write(importNamespace[:])
 	h.Write([]byte(key))
@@ -98,7 +99,7 @@ func importJSONL(ctx context.Context, st *bbolt.WorkingStore, in io.Reader, agen
 		// Resolve depends_on within the same source revision.
 		ids := map[string]string{}
 		for i := range batch {
-			ids[batch[i].LocalID] = importUUID(&batch[i])
+			ids[batch[i].LocalID] = importUUID(agent, &batch[i])
 		}
 		for i := range batch {
 			r := &batch[i]

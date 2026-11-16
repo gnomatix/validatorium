@@ -59,4 +59,9 @@ func TestImportJSONL(t *testing.T) {
 	if err != nil || again.Created != 0 || again.Existing != 2 {
 		t.Fatalf("re-import: %+v %v", again, err)
 	}
+	// A second worker decomposing the same article keeps its own records.
+	other, err := importJSONL(ctx, st, strings.NewReader(sampleJSONL), "worker:other", at, &rejects)
+	if err != nil || other.Created != 2 {
+		t.Fatalf("second worker: %+v %v", other, err)
+	}
 }

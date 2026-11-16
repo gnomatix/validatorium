@@ -27,8 +27,12 @@ the exact article revision it came from, as a pointer to the source.
 
    It prints how many premises were created, already present, skipped as
    conclusions, and rejected; rejected lines and reasons go to standard error.
-   Importing is idempotent: each premise UUID is derived from wiki, page id,
-   revision id and local id, so re-running a file creates nothing new.
+   Importing is idempotent: each premise UUID is derived from the agent,
+   wiki, page id, revision id and local id, so re-running a file creates
+   nothing new. Different workers (different `-agent`) decomposing the same
+   article keep separate records, so their outputs can be cross-checked:
+   where independent workers agree, the decomposition is consistent; where
+   they differ, the article goes back for review.
 
 ## Iterating on quality
 
