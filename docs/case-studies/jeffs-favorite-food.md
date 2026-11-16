@@ -8,25 +8,28 @@ hypothetical speaker.
 > "My name's Jeff, and I like, my favorite food is Pop-Tarts, strawberry
 > Pop-Tarts, but only the kind that they used to make."
 
-It reads as one statement. It contains at least nine.
+It reads as one statement. It contains at least nine premises, and they share
+one root: **there is a person named Jeff.** Every other premise is about that
+person and is established by that same person. They are *self-referential
+premises*.
 
 ## Explicit premises
 
 Each phrase of the sentence asserts something of its own.
 
-| # | Phrase | What it asserts | Kind of claim |
+| # | Phrase | What it asserts | Kind of premise |
 |---|---|---|---|
-| 1 | "My name's Jeff" | The speaker's name is Jeff. | About the speaker |
-| 2 | "my favorite food is Pop-Tarts" | Of all foods, Jeff prefers Pop-Tarts. "Favorite" is a comparison against every other food. | Self-reported preference |
-| 3 | "strawberry Pop-Tarts" | Among Pop-Tarts, Jeff prefers the strawberry flavor. | Self-reported preference; refines 2 |
-| 4 | "the kind that they used to make" | An earlier version of strawberry Pop-Tarts existed and differs from the current one. | About the product's history; checkable against the manufacturer's records |
-| 5 | "but only" | Jeff prefers the earlier version to the current one. | Self-reported preference; refines 3 |
+| 1 | "My name's Jeff" | There is a person named Jeff, and he is the speaker. | Root: existence of the person; self-referential |
+| 2 | "my favorite food is Pop-Tarts" | Of all foods, Jeff prefers Pop-Tarts. "Favorite" is a comparison against every other food. | Self-referential preference |
+| 3 | "strawberry Pop-Tarts" | Among Pop-Tarts, Jeff prefers the strawberry flavor. | Self-referential preference; refines 2 |
+| 4 | "the kind that they used to make" | An earlier version of strawberry Pop-Tarts existed and differs from the current one. | About the product's history; not self-referential; checkable against the manufacturer's records |
+| 5 | "but only" | Jeff prefers the earlier version to the current one. | Self-referential preference; refines 3 |
 
 ## Implicit premises
 
 The sentence also depends on claims it never states.
 
-| # | Depends on | What is assumed |
+| # | Depends on | What it depends on without saying so |
 |---|---|---|
 | 6 | 5 | Jeff has eaten both the earlier and the current version; otherwise he cannot prefer one to the other. |
 | 7 | 4 | "They" is a specific manufacturer, never named. |
@@ -50,7 +53,7 @@ terms:
     label: "strawberry flavor"
 ---
 
-[Speaker Name]: The speaker's name is Jeff. {
+[Person Named Jeff]: There is a person named Jeff, who is the author of these records. {
   evidence_type: "self_report"
 }
 
@@ -58,6 +61,7 @@ terms:
   evidence_type: "self_report",
   scope: {as_of: "date of statement"}
 }
+  + [Person Named Jeff]
 
 [Jeff Favorite Flavor]: Jeff's favorite Pop-Tarts flavor is strawberry. #refinement {
   evidence_type: "self_report",
@@ -117,6 +121,12 @@ name.
 - **Even a casual sentence carries many premises.** Writing it into the
   record format brings each into the open, including those the speaker never
   said out loud.
+- **Self-referential premises share a recognisable shape.** For premises 1,
+  2, 3, 5 and 6 the author, the subject and the source of the evidence are the
+  same key, and all depend on the root "there is a person named Jeff". A node
+  syncing these records can detect that shape from the records alone. A
+  signature proves a key holder exists; that the key holder is a person named
+  Jeff rests on his own statement.
 - **Different premises have different kinds of evidence.** Premises 1, 2, 3,
   5 and 6 rest on Jeff's own report, and the record says so. Premise 4 is
   about a product's history and is checkable against documents, independently
