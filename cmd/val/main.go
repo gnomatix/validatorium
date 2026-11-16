@@ -1,9 +1,9 @@
 // Command val runs a Validatorium node: a bbolt working store beside an
 // embedded Kubo node and a go-orbit-db pointer store.
 //
-// It wires the two storage tiers together and reports their addresses. It
-// does not evaluate premises; evaluation and promotion are driven through
-// the internal packages by higher-level workflows.
+// With no subcommand it wires the two storage tiers together and reports
+// their addresses. The subcommands create, evaluate, attestations and
+// release run the local premise workflow against the working store only.
 package main
 
 import (
@@ -26,6 +26,15 @@ import (
 const defaultPointerStoreName = "validatorium-pointers"
 
 func main() {
+	if len(os.Args) > 1 {
+		if cmd, ok := subcommands[os.Args[1]]; ok {
+			if err := cmd(os.Args[2:], os.Stdout); err != nil {
+				fmt.Fprintln(os.Stderr, "val "+os.Args[1]+":", err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
 	var (
 		ipfsRepo    = flag.String("ipfs-repo", "./ipfs_repo", "path of the embedded Kubo repository")
 		orbitDir    = flag.String("orbit-dir", "./orbitdb_repo", "directory for go-orbit-db cache and keystore")

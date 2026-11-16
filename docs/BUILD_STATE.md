@@ -73,15 +73,16 @@ Writing to the global store is the publication step; there is no separate push.
   promotion; evidence records as a separate record class
 - Extensible provenance-preserving adapters for machine or instrument observations
 - Automated hypothesis-testing orchestration
-- Complete user-facing premise workflows (the CLI opens stores; it does not yet
-  create, evaluate, or promote premises)
+- CLI promotion and release publication (the `val create`, `evaluate`,
+  `attestations` and `release` subcommands work against the working store
+  only; promotion and publication need the global store and are not exposed)
 
 `Micropublication.ValidateRecord()` and `ValidityAttestation.ValidateRecord()`
 check record structure; they do not establish semantic validity.
 
 ## Package layout
 
-- `cmd/val`: node CLI
+- `cmd/val`: node CLI; subcommands `create`, `evaluate`, `attestations`, `release` for the local workflow
 - `internal/model`: micropublication, attestation and term record models
 - `internal/namespace`: namespace names
 - `internal/storage`: tier interfaces, pointer records, content identifiers
