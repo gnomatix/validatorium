@@ -27,7 +27,7 @@ Each phrase of the sentence asserts something of its own.
 
 ## Implicit premises
 
-The sentence also depends on claims it never states.
+The sentence also depends on premises it never states.
 
 | # | Depends on | What it depends on without saying so |
 |---|---|---|

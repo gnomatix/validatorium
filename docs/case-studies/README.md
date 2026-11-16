@@ -11,4 +11,4 @@ These are illustrations, not specification. The rules they follow are in
 
 | Case | What it shows |
 |---|---|
-| [Jeff's favorite food](jeffs-favorite-food.md) | One casual sentence carries at least nine premises: preferences, a product-history claim, and unstated assumptions about time, manufacturer and experience. |
+| [Jeff's favorite food](jeffs-favorite-food.md) | One casual sentence carries at least nine premises, rooted in "there is a person named Jeff": self-referential preferences, a premise about a product's history, and unstated premises about time, manufacturer and experience. |
