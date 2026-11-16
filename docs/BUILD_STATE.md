@@ -68,6 +68,11 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   (`urn:validatorium:method:file-sha256`), which returns true on a SHA-256
   match, false on a mismatch, and indeterminate when the file cannot be read,
   and records the content identifier of the bytes it read as evidence
+- Automatic publication on validity (`internal/autopublish`): evaluates a
+  working-store candidate with the evaluator registered for its method,
+  records the attestation whatever its result, and publishes the candidate
+  (with namespaced pointers) only when the attestation establishes validity;
+  admission rules stay in `internal/promote`. Not yet wired to the CLI
 - Tests: an end-to-end test evaluates a real file, promotes on the true
   result, refuses the false one, and builds and publishes a release; unit
   tests per package, two-node replication of blocks and pointers,
@@ -111,6 +116,7 @@ check record structure; they do not establish semantic validity.
 - `internal/ipfsnode`: embedded Kubo node (on-disk or mock-network)
 - `internal/orbit`: go-orbit-db global store (tier 2)
 - `internal/promote`: tier-1 to tier-2 admission seam
+- `internal/autopublish`: evaluate-then-publish (automatic publication on validity)
 - `internal/release`: release manifest builder and publication
 - `internal/evaluate`: evaluator interface, method registry, file-digest evaluator
 - `internal/wikidata`: Wikidata pointer records, term resolution, statement evaluator
