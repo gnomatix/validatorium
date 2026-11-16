@@ -72,7 +72,8 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   working-store candidate with the evaluator registered for its method,
   records the attestation whatever its result, and publishes the candidate
   (with namespaced pointers) only when the attestation establishes validity;
-  admission rules stay in `internal/promote`. Not yet wired to the CLI
+  admission rules stay in `internal/promote`. `val publish` runs it against
+  the on-disk Kubo/go-orbit-db global store (or `-offline` for an isolated node)
 - Tests: an end-to-end test evaluates a real file, promotes on the true
   result, refuses the false one, and builds and publishes a release; unit
   tests per package, two-node replication of blocks and pointers,
@@ -98,16 +99,15 @@ Writing to the global store is the publication step; there is no separate push.
   promotion; evidence records as a separate record class
 - Extensible provenance-preserving adapters for machine or instrument observations
 - Automated hypothesis-testing orchestration
-- CLI promotion and release publication (the `val create`, `evaluate`,
-  `attestations` and `release` subcommands work against the working store
-  only; promotion and publication need the global store and are not exposed)
+- CLI release publication to the global store (`val release` builds the
+  manifest against the working store only)
 
 `Micropublication.ValidateRecord()` and `ValidityAttestation.ValidateRecord()`
 check record structure; they do not establish semantic validity.
 
 ## Package layout
 
-- `cmd/val`: node CLI; subcommands `create`, `evaluate`, `attestations`, `release` for the local workflow, and `api` for the self-certification registry API
+- `cmd/val`: node CLI; subcommands `create`, `evaluate`, `attestations`, `release` for the local workflow, `publish` for evaluate-then-publish to the global store, and `api` for the self-certification registry API
 - `internal/model`: micropublication, attestation and term record models
 - `internal/namespace`: namespace names
 - `internal/storage`: tier interfaces, pointer records, content identifiers
