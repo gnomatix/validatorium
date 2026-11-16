@@ -51,8 +51,16 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   versioned and can be obsoleted by anyone with the obsoleting agent and
   reason recorded; `val api` serves `GET /api/verification?url=` in the ITVB
   response format (with ITVB headers and CORS for browser plugins), plus
-  registration and obsoleting endpoints. Signer identity is recorded but not
-  yet verified (GPG verification not implemented)
+  registration and obsoleting endpoints
+- OpenPGP identities for the registry (`internal/identity`, `Identity`
+  record class): `POST /api/identities` registers an armored public key under
+  its fingerprint after a detached-signature proof of key possession over
+  `identity.ProofText(fingerprint)`; `POST /api/identities/{fp}/obsolete`
+  obsoletes it with agent and reason recorded (no revocation; versions stay
+  addressable). A certification registered with a detached signature over
+  `SignedPayload()` by a current identity is recorded as signer-verified;
+  verification responses report `signer_verified` only while that identity is
+  still current. Who may obsolete an identity is not restricted yet
 - Evaluation (`internal/evaluate`): an `Evaluator` interface and a registry
   that selects the evaluator by the premise's MP:Method reference and returns
   an immutable attestation for the exact premise version, without writing.
@@ -106,6 +114,7 @@ check record structure; they do not establish semantic validity.
 - `internal/release`: release manifest builder and publication
 - `internal/evaluate`: evaluator interface, method registry, file-digest evaluator
 - `internal/wikidata`: Wikidata pointer records, term resolution, statement evaluator
+- `internal/identity`: OpenPGP fingerprints and detached-signature verification
 - `internal/api`: self-certification registry HTTP API (ITVB response format)
 - `internal/spike`: replication-spike tests
 

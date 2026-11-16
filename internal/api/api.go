@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"gnomatix/validatorium/internal/identity"
 	"gnomatix/validatorium/internal/model"
 	"gnomatix/validatorium/internal/storage"
 )
@@ -32,6 +33,15 @@ type Store interface {
 	PutCertification(ctx context.Context, c *model.SelfCertification) (storage.VersionRef, error)
 	GetCertification(ctx context.Context, uuid string) (*model.SelfCertification, storage.VersionRef, error)
 	CertificationsForSubject(ctx context.Context, subject string) ([]*model.SelfCertification, error)
+	PutIdentity(ctx context.Context, i *model.Identity) (storage.VersionRef, error)
+	GetIdentity(ctx context.Context, fingerprint string) (*model.Identity, error)
+}
+
+// signerCurrent reports whether fp is a registered identity that has not been
+// obsoleted. A signature counts as verified only while this holds.
+func (s *Server) signerCurrent(ctx context.Context, fp string) bool {
+	id, err := s.Store.GetIdentity(ctx, fp)
+	return err == nil && id.State.Status == model.Current
 }
 
 // Server is the HTTP handler.
@@ -67,6 +77,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.obsolete(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/api/certifications/"), "/obsolete"))
 	case strings.HasPrefix(path, "/api/certifications/") && r.Method == http.MethodGet:
 		s.get(w, r, strings.TrimPrefix(path, "/api/certifications/"))
+	case path == "/api/identities" && r.Method == http.MethodPost:
+		s.registerIdentity(w, r)
+	case strings.HasPrefix(path, "/api/identities/") && strings.HasSuffix(path, "/obsolete") && r.Method == http.MethodPost:
+		s.obsoleteIdentity(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/api/identities/"), "/obsolete"))
 	default:
 		writeErr(w, http.StatusNotFound, "no such endpoint")
 	}
@@ -148,7 +162,8 @@ func (s *Server) verification(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		resp.Validatorium.Current = append(resp.Validatorium.Current, CertRef{UUID: c.UUID, Version: ref.CID, Signer: c.Signer, SignerVerified: c.SignerVerified})
+		verified := c.SignerVerified && s.signerCurrent(r.Context(), c.Signer)
+		resp.Validatorium.Current = append(resp.Validatorium.Current, CertRef{UUID: c.UUID, Version: ref.CID, Signer: c.Signer, SignerVerified: verified})
 		if latest == nil || c.Date > latest.Date {
 			latest = c
 		}
@@ -171,6 +186,10 @@ type registerRequest struct {
 	Method   string `json:"method"`
 	Date     string `json:"date"`
 	Signer   string `json:"signer"`
+	// Signature is an optional ASCII-armored detached OpenPGP signature over
+	// the certification's SignedPayload, by the registered identity named in
+	// Signer. With it, the signer is recorded as verified.
+	Signature string `json:"signature"`
 }
 
 func (s *Server) register(w http.ResponseWriter, r *http.Request) {
@@ -187,6 +206,19 @@ func (s *Server) register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErr(w, http.StatusBadRequest, err.Error())
 		return
+	}
+	if req.Signature != "" {
+		id, err := s.Store.GetIdentity(r.Context(), req.Signer)
+		if err != nil || id.State.Status != model.Current {
+			writeErr(w, http.StatusForbidden, "signer is not a current registered identity")
+			return
+		}
+		fp, err := identity.VerifyDetached(id.PublicKey, c.SignedPayload(), req.Signature)
+		if err != nil || fp != id.UUID {
+			writeErr(w, http.StatusForbidden, "signature does not verify for the signer's key")
+			return
+		}
+		c.SignerVerified = true
 	}
 	ref, err := s.Store.PutCertification(r.Context(), c)
 	if err != nil {
@@ -239,6 +271,70 @@ func (s *Server) get(w http.ResponseWriter, r *http.Request, uuid string) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]interface{}{"version": ref.CID, "certification": c})
+}
+
+type identityRequest struct {
+	PublicKey string `json:"public_key"`
+	// Proof is an ASCII-armored detached signature over
+	// identity.ProofText(fingerprint), made with the key being registered.
+	Proof string `json:"proof"`
+}
+
+func (s *Server) registerIdentity(w http.ResponseWriter, r *http.Request) {
+	var req identityRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	fp, err := identity.Fingerprint(req.PublicKey)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if got, err := identity.VerifyDetached(req.PublicKey, identity.ProofText(fp), req.Proof); err != nil || got != fp {
+		writeErr(w, http.StatusForbidden, "proof of key possession does not verify")
+		return
+	}
+	if existing, err := s.Store.GetIdentity(r.Context(), fp); err == nil {
+		// A registered identity, current or obsolete, is never replaced.
+		writeErr(w, http.StatusConflict, "identity already registered with status "+string(existing.State.Status))
+		return
+	}
+	id := &model.Identity{UUID: fp, PublicKey: req.PublicKey, State: model.Lifecycle{Status: model.Current},
+		Attribution: model.Attribution{Agent: fp, AtTime: s.now().UTC().Format(time.RFC3339)}}
+	ref, err := s.Store.PutIdentity(r.Context(), id)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]string{"fingerprint": fp, "version": ref.CID})
+}
+
+func (s *Server) obsoleteIdentity(w http.ResponseWriter, r *http.Request, fp string) {
+	var req obsoleteRequest
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+	cur, err := s.Store.GetIdentity(r.Context(), fp)
+	if errors.Is(err, storage.ErrNotFound) {
+		writeErr(w, http.StatusNotFound, "no such identity")
+		return
+	} else if err != nil {
+		writeErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	next, err := cur.Obsoleted(req.By, req.Reason)
+	if err != nil {
+		writeErr(w, http.StatusConflict, err.Error())
+		return
+	}
+	ref, err := s.Store.PutIdentity(r.Context(), next)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"fingerprint": fp, "version": ref.CID})
 }
 
 func writeJSON(w http.ResponseWriter, code int, v interface{}) {

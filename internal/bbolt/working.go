@@ -29,6 +29,8 @@ import (
 //	cert_versions         CID             -> canonical self-certification bytes (immutable)
 //	certs                 cert UUID       -> CID of the current self-certification version
 //	certs_by_subject      subject + 0x00 + cert UUID -> empty (index)
+//	identity_versions     CID             -> canonical identity bytes (immutable)
+//	identities            fingerprint     -> CID of the current identity version
 //
 // Candidates are the only mutable record class. Versions, term versions and
 // attestations are content-addressed or append-only; a write that would change
@@ -46,7 +48,9 @@ var (
 	bucketCertVersions    = []byte("cert_versions")
 	bucketCerts           = []byte("certs")
 	bucketCertsBySubject  = []byte("certs_by_subject")
-	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms, bucketNamespaces, bucketCertVersions, bucketCerts, bucketCertsBySubject}
+	bucketIdentityVers    = []byte("identity_versions")
+	bucketIdentities      = []byte("identities")
+	workingStoreBuckets   = [][]byte{bucketCandidates, bucketVersions, bucketCurrent, bucketAttestations, bucketAttestIdx, bucketTermVersions, bucketTerms, bucketNamespaces, bucketCertVersions, bucketCerts, bucketCertsBySubject, bucketIdentityVers, bucketIdentities}
 	attestationIndexDelim = byte(0)
 )
 

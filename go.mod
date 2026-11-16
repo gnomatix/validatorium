@@ -17,6 +17,7 @@ require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/Jorropo/jsync v1.0.1 // indirect
+	github.com/ProtonMail/go-crypto v1.5.2 // indirect
 	github.com/RaduBerinde/axisds v0.1.0 // indirect
 	github.com/RaduBerinde/btreemap v0.0.0-20250419174037-3d62b7205d54 // indirect
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
@@ -32,6 +33,7 @@ require (
 	github.com/ceramicnetwork/go-dag-jose v0.1.1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cockroachdb/crlib v0.0.0-20241112164430-1264a2edc35b // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
