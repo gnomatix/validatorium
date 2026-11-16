@@ -31,6 +31,7 @@ var subcommands = map[string]func(args []string, out io.Writer) error{
 	"attestations": cmdAttestations,
 	"release":      cmdRelease,
 	"publish":      cmdPublish,
+	"import":       cmdImport,
 	"api":          cmdAPI,
 }
 
