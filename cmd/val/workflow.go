@@ -122,6 +122,7 @@ func cmdEvaluate(args []string, out io.Writer) error {
 	uuid := fs.String("uuid", "", "premise UUID (required)")
 	sum := fs.String("sha256", "", "expected SHA-256 digest, for the file-digest method")
 	evaluator := fs.String("evaluator", "gemini-cli", "evaluator identity recorded on the attestation (attribution only)")
+	method := fs.String("method", "", "method URI to evaluate with; empty means the method the premise names first")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -146,7 +147,13 @@ func cmdEvaluate(args []string, out io.Writer) error {
 	if *sum != "" {
 		scope["sha256"] = *sum
 	}
-	att, outcome, err := reg.Attest(ctx, prem, scope, *evaluator, time.Now())
+	var att *model.ValidityAttestation
+	var outcome evaluate.Outcome
+	if *method != "" {
+		att, outcome, err = reg.AttestWith(ctx, prem, *method, scope, *evaluator, time.Now())
+	} else {
+		att, outcome, err = reg.Attest(ctx, prem, scope, *evaluator, time.Now())
+	}
 	if err != nil {
 		return err
 	}

@@ -77,17 +77,30 @@ func (r *Registry) Methods() []string {
 // one no registered evaluator implements.
 var ErrNoMethod = errors.New("evaluate: no registered evaluator for the premise's method")
 
-// Attest evaluates the premise with the evaluator registered for its method
-// and returns a well-formed attestation for its exact current version. The
-// evaluator identity is recorded for attribution only.
+// Attest evaluates the premise with the evaluator registered for the method
+// its support graph names first, and returns a well-formed attestation for
+// its exact current version. The evaluator identity is recorded for
+// attribution only. To evaluate with another method, use AttestWith.
 func (r *Registry) Attest(ctx context.Context, premise *model.Micropublication, scope map[string]interface{}, evaluator string, at time.Time) (*model.ValidityAttestation, Outcome, error) {
+	if premise == nil {
+		return nil, Outcome{}, errors.New("evaluate: nil premise")
+	}
+	return r.AttestWith(ctx, premise, methodOf(premise), scope, evaluator, at)
+}
+
+// AttestWith evaluates the premise with the evaluator registered for the
+// given method URI. Any number of methods may evaluate the same premise
+// version; each evaluation yields its own immutable attestation naming its
+// method (docs/specs/data-model.md §6). The method need not appear in the
+// premise record: an independent (orthogonal) method can be applied to a
+// premise its author never anticipated.
+func (r *Registry) AttestWith(ctx context.Context, premise *model.Micropublication, method string, scope map[string]interface{}, evaluator string, at time.Time) (*model.ValidityAttestation, Outcome, error) {
 	if premise == nil {
 		return nil, Outcome{}, errors.New("evaluate: nil premise")
 	}
 	if err := premise.ValidateRecord(); err != nil {
 		return nil, Outcome{}, err
 	}
-	method := methodOf(premise)
 	ev, ok := r.byMethod[method]
 	if !ok {
 		return nil, Outcome{}, fmt.Errorf("%w (method %q)", ErrNoMethod, method)
