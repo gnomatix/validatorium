@@ -40,8 +40,12 @@ refs, sig, v; `v` = 2). The payload decodes as a string (the Go operation
 serialized as JSON), whereas JavaScript OrbitDB's databases build entries
 whose payload is an object with `op`, `key` and `value`; a JavaScript
 database would not read the Go operation without conversion (not tested).
-Not checked: signature verification across the two, and replication between
-a Go and a JavaScript peer.
+Signature: `Entry.verify` with `@orbitdb/core`'s `verifyMessage` reads the
+Go entry's key without error but returns false: JavaScript re-encodes the
+entry fields (id, payload, next, refs, clock, v) as dag-cbor and checks the
+signature over those bytes, and the Go port signs a different byte form. A
+JavaScript peer that verifies entries would therefore reject entries written
+by go-orbit-db. Replication between a Go and a JavaScript peer was not run.
 
 ## Findings for the namespace and signing work
 
@@ -64,5 +68,5 @@ a Go and a JavaScript peer.
 ## Not checked
 
 Minor JavaScript releases between the tags read; access-control
-enforcement on replication; signature verification and replication between a Go and a
-JavaScript peer.
+enforcement on replication; replication between a Go and a JavaScript peer (the signature result
+above predicts rejection).
