@@ -21,6 +21,15 @@ Supersedes the leads in `UNVERIFIED-go-orbit-db-parity.md`.
 | Payload encryption | modular, `encryption: { data }` | absent | no encryption option in `CreateDBOptions`; test shows the entry block carries the value base64-encoded, readable by any peer holding the block |
 | Log-entry (replication) encryption | modular, `encryption: { replication }` | partial: `go-ipfs-log` can encrypt entry links (`cbor.Options.LinkKey`, NaCl secretbox) through `CreateDBOptions.IO`; payload stays readable | test `TestParityLinkEncryptionLeavesPayloadReadable`: an event log opened with a link key works, its entry blocks carry `enc_links`, and the payload is readable |
 
+## JavaScript versions
+
+Read from the release tags of `orbitdb/orbitdb` on 2026-11-17: v2.0.0 has the
+five databases above (events, documents, keyvalue, keyvalue-indexed) and no
+encryption (no `docs/ENCRYPTION.md`, no `encrypt` in `src/`); v3.0.0 adds the
+encryption module (the document present, 10 files in `src/` mention it); v4.0.0
+as in the matrix. So payload and replication encryption arrived in JavaScript
+OrbitDB 3.0.0; go-orbit-db has neither.
+
 ## Findings for the namespace and signing work
 
 - **Private or shared namespaces cannot rely on go-orbit-db for
@@ -41,6 +50,6 @@ Supersedes the leads in `UNVERIFIED-go-orbit-db-parity.md`.
 
 ## Not checked
 
-JavaScript OrbitDB 2.x and 3.x; access-control
+Minor JavaScript releases between the tags read; access-control
 enforcement on replication; interoperability between the Go and JavaScript
 implementations.
