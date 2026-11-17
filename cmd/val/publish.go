@@ -39,6 +39,15 @@ func cmdPublish(args []string, out io.Writer) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+	var namespaces []namespace.Name
+	for _, n := range splitList(*nsList) {
+		name, err := namespace.Parse(n)
+		if err != nil {
+			return err
+		}
+		namespaces = append(namespaces, name)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	st, err := bbolt.OpenWorkingStore(*ws)
@@ -57,15 +66,35 @@ func cmdPublish(args []string, out io.Writer) error {
 		return errors.New("no candidate drafts to evaluate")
 	}
 
-	pub, closeGlobal, err := newPublisher(ctx, st, *offline, *ipfsRepo, *orbitDir, *pointerDB, *evaluator, *nsList)
+	var node *ipfsnode.Node
+	if *offline {
+		node, err = ipfsnode.NewMockNode(ctx, mocknet.New())
+	} else {
+		node, err = ipfsnode.NewNode(ctx, *ipfsRepo)
+	}
+	if err != nil {
+		return fmt.Errorf("start IPFS node: %w", err)
+	}
+	defer node.Close()
+	gs, err := orbit.Open(ctx, node, *orbitDir, *pointerDB, &orbit.Options{PinBlocks: true})
+	if err != nil {
+		return fmt.Errorf("open global store: %w", err)
+	}
+	defer gs.Close()
+
+	reg, err := evaluate.NewRegistry(evaluate.FileDigest{})
 	if err != nil {
 		return err
 	}
-	defer closeGlobal()
-	gs := pub.Promoter.Global.(*orbit.GlobalStore)
 	scope := map[string]interface{}{}
 	if *sum != "" {
 		scope["sha256"] = *sum
+	}
+	pub := &autopublish.Publisher{
+		Promoter:   &promote.Promoter{Working: st, Global: gs},
+		Evaluators: reg,
+		Evaluator:  *evaluator,
+		Namespaces: namespaces,
 	}
 	for _, id := range ids {
 		o, err := pub.Run(ctx, id, scope)
@@ -90,46 +119,4 @@ func splitList(s string) []string {
 		}
 	}
 	return out
-}
-
-// newPublisher starts the IPFS node, opens the global store and returns a
-// publisher over it with the built-in evaluators, and a function that
-// closes the store and the node.
-func newPublisher(ctx context.Context, st *bbolt.WorkingStore, offline bool, ipfsRepo, orbitDir, pointerDB, evaluator, nsList string) (*autopublish.Publisher, func(), error) {
-	var namespaces []namespace.Name
-	for _, n := range splitList(nsList) {
-		name, err := namespace.Parse(n)
-		if err != nil {
-			return nil, nil, err
-		}
-		namespaces = append(namespaces, name)
-	}
-	var node *ipfsnode.Node
-	var err error
-	if offline {
-		node, err = ipfsnode.NewMockNode(ctx, mocknet.New())
-	} else {
-		node, err = ipfsnode.NewNode(ctx, ipfsRepo)
-	}
-	if err != nil {
-		return nil, nil, fmt.Errorf("start IPFS node: %w", err)
-	}
-	gs, err := orbit.Open(ctx, node, orbitDir, pointerDB, &orbit.Options{PinBlocks: true})
-	if err != nil {
-		node.Close()
-		return nil, nil, fmt.Errorf("open global store: %w", err)
-	}
-	reg, err := evaluate.NewRegistry(evaluate.FileDigest{})
-	if err != nil {
-		gs.Close()
-		node.Close()
-		return nil, nil, err
-	}
-	pub := &autopublish.Publisher{
-		Promoter:   &promote.Promoter{Working: st, Global: gs},
-		Evaluators: reg,
-		Evaluator:  evaluator,
-		Namespaces: namespaces,
-	}
-	return pub, func() { gs.Close(); node.Close() }, nil
 }

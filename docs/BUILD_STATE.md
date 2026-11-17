@@ -87,10 +87,6 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   from those premises in that order, joined by the author's glue text; the
   output is labelled as a draft. `internal/llm` refuses any endpoint that is
   not a loopback address (`llm-integration.md`: no data leaves the machine).
-  `val api -publish` serves `POST /api/premises/{uuid}/validate` (optional body
-  `{"scope": {...}}`), which runs the same evaluation and publication for one
-  candidate and answers with the result, the method and, when published, the
-  version and attestation CIDs
 - Tests: an end-to-end test evaluates a real file, promotes on the true
   result, refuses the false one, and builds and publishes a release; unit
   tests per package, two-node replication of blocks and pointers,
