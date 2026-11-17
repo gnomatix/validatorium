@@ -47,6 +47,8 @@ func (s *Server) signerCurrent(ctx context.Context, fp string) bool {
 // Server is the HTTP handler.
 type Server struct {
 	Store Store
+	// Validator, when set, serves POST /api/premises/{uuid}/validate.
+	Validator Validator
 	// Now supplies the time; nil means time.Now.
 	Now func() time.Time
 }
@@ -81,6 +83,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.searchPremises(w, r)
 	case path == "/api/premises" && r.Method == http.MethodPost:
 		s.createPremise(w, r)
+	case strings.HasPrefix(path, "/api/premises/") && strings.HasSuffix(path, "/validate") && r.Method == http.MethodPost:
+		s.validatePremise(w, r, strings.TrimSuffix(strings.TrimPrefix(path, "/api/premises/"), "/validate"))
 	case strings.HasPrefix(path, "/api/premises/") && r.Method == http.MethodGet:
 		s.getPremise(w, r, strings.TrimPrefix(path, "/api/premises/"))
 	case path == "/api/identities" && r.Method == http.MethodPost:

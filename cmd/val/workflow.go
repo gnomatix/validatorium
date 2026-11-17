@@ -12,14 +12,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"gnomatix/validatorium/internal/api"
 	"gnomatix/validatorium/internal/bbolt"
 	"gnomatix/validatorium/internal/evaluate"
 	"gnomatix/validatorium/internal/model"
+	"gnomatix/validatorium/internal/orbit"
 	"gnomatix/validatorium/internal/release"
 	"gnomatix/validatorium/internal/storage"
 )
@@ -40,6 +44,13 @@ func cmdAPI(args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("api", flag.ContinueOnError)
 	ws := openWS(fs)
 	listen := fs.String("listen", "127.0.0.1:8085", "address to listen on")
+	publish := fs.Bool("publish", false, "open the global store and serve POST /api/premises/{uuid}/validate")
+	ipfsRepo := fs.String("ipfs-repo", "./ipfs_repo", "with -publish: path of the embedded Kubo repository")
+	orbitDir := fs.String("orbit-dir", "./orbitdb_repo", "with -publish: directory for go-orbit-db cache and keystore")
+	pointerDB := fs.String("pointer-store", defaultPointerStoreName, "with -publish: pointer store name, or an /orbitdb/... address to join")
+	offline := fs.Bool("offline", false, "with -publish: run the IPFS node on an isolated in-process network")
+	evaluator := fs.String("evaluator", "gemini-cli", "with -publish: evaluator identity recorded on attestations (attribution only)")
+	nsList := fs.String("ns", "", "with -publish: comma-separated namespaces to place published versions in")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -48,9 +59,30 @@ func cmdAPI(args []string, out io.Writer) error {
 		return err
 	}
 	defer st.Close()
-	srv := &http.Server{Addr: *listen, Handler: &api.Server{Store: st}, ReadHeaderTimeout: 10 * time.Second}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	handler := &api.Server{Store: st}
+	if *publish {
+		pub, closeGlobal, err := newPublisher(ctx, st, *offline, *ipfsRepo, *orbitDir, *pointerDB, *evaluator, *nsList)
+		if err != nil {
+			return err
+		}
+		defer closeGlobal()
+		handler.Validator = pub
+		fmt.Fprintln(out, "validation enabled; pointer store", pub.Promoter.Global.(*orbit.GlobalStore).Address())
+	}
+	srv := &http.Server{Addr: *listen, Handler: handler, ReadHeaderTimeout: 10 * time.Second}
 	fmt.Fprintln(out, "validatorium api listening on http://"+*listen)
-	return srv.ListenAndServe()
+	go func() {
+		<-ctx.Done()
+		sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(sctx)
+	}()
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
 
 func openWS(fs *flag.FlagSet) *string {

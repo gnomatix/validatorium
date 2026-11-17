@@ -74,7 +74,11 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   records the attestation whatever its result, and publishes the candidate
   (with namespaced pointers) only when the attestation establishes validity;
   admission rules stay in `internal/promote`. `val publish` runs it against
-  the on-disk Kubo/go-orbit-db global store (or `-offline` for an isolated node)
+  the on-disk Kubo/go-orbit-db global store (or `-offline` for an isolated node).
+  `val api -publish` serves `POST /api/premises/{uuid}/validate` (optional body
+  `{"scope": {...}}`), which runs the same evaluation and publication for one
+  candidate and answers with the result, the method and, when published, the
+  version and attestation CIDs
 - Tests: an end-to-end test evaluates a real file, promotes on the true
   result, refuses the false one, and builds and publishes a release; unit
   tests per package, two-node replication of blocks and pointers,
