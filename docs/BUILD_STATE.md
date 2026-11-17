@@ -97,11 +97,21 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
 
 Writing to the global store is the publication step; there is no separate push.
 
+## Wikipedia data feed
+
+Not part of the specification. `ingest/wikipedia/README.md` describes the
+pipeline (`fetch-dump.sh`, `wikiextract`, `worker-local.sh`, `sge-array.sh`,
+`val import`); `docs/handoff/wikipedia-run/WORKPLAN.md` is the run plan and
+`docs/handoff/TRUST.md` records what each piece has and has not been run on.
+
 ## Not yet implemented
 
-- Evaluators beyond the runtime file digest: document inspection, dataset
-  lookup, reproducible computation, instrument observation.
-- Signing of promoted records (Beads decision `validatorium-ilv` is open)
+- Evaluators beyond the runtime file digest and the Wikidata statement check:
+  document inspection, dataset lookup, reproducible computation, instrument
+  observation. Where method execution belongs is open (`validatorium-1hx`,
+  `data-model.md` §11).
+- Signing of records (`validatorium-ilv`; a promotion-signing attempt built
+  from a tracker summary was reverted on 2026-11-17)
 - Core namespace structure beneath the root, private/shared namespaces via
   native IPFS mechanisms, and per-namespace access policy
 - Evidence, asset and artifact versions in release manifests (manifests list
@@ -120,7 +130,9 @@ check record structure; they do not establish semantic validity.
 
 ## Package layout
 
-- `cmd/val`: node CLI; subcommands `create`, `evaluate`, `attestations`, `release` for the local workflow, `publish` for evaluate-then-publish to the global store, and `api` for the self-certification registry API
+- `cmd/val`: node CLI; subcommands `create`, `evaluate`, `attestations`, `release` for the local workflow, `publish` for evaluate-then-publish to the global store, `api` for the HTTP API (registry, premises, graph view, argument builder), `import` for worker output from the Wikipedia feed, and `draft` for model-drafted prose from premises
+- `cmd/wikiextract`: Wikipedia dump extractor (data feed, `ingest/wikipedia/`)
+- `internal/llm`: local-only client for an OpenAI-compatible model endpoint
 - `internal/model`: micropublication, attestation and term record models
 - `internal/namespace`: namespace names
 - `internal/storage`: tier interfaces, pointer records, content identifiers
@@ -134,7 +146,7 @@ check record structure; they do not establish semantic validity.
 - `internal/evaluate`: evaluator interface, method registry, file-digest evaluator
 - `internal/wikidata`: Wikidata pointer records, term resolution, statement evaluator
 - `internal/identity`: OpenPGP fingerprints and detached-signature verification
-- `internal/api`: self-certification registry HTTP API (ITVB response format)
+- `internal/api`: HTTP API: self-certification registry (ITVB response format), identities, premise lookup and candidates, graph view, argument builder
 - `internal/spike`: replication-spike tests
 
 Design: `docs/design/two-tier-storage.md` records the storage system design,

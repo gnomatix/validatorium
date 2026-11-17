@@ -75,6 +75,16 @@ sources, no weight for authority or reputation
   model.
 - Quality gates before every commit: `scripts/guard.sh`.
 
+## 8. Sources for building
+
+Code is built from two sources only: text in `docs/specs/`, or the owner's
+own words, quoted with where they were said. Tracker records that summarize
+a decision ("DECISION: ...", "Owner direction ...") were mostly written by
+agents and are not sources on their own; check the summary against the
+specification or the owner's wording before building from it. On
+2026-11-17 two features built from such summaries (record signing, a
+validation route) had to be reverted.
+
 ## Reviewer checklist (for the reviewing model or person)
 
 For each delivered change, answer each line with evidence (file and line,
@@ -87,3 +97,5 @@ or command and output):
 4. Does any test, name or comment come from a use-case example?
 5. Did `scripts/guard.sh` pass? Paste the last lines.
 6. Is every "works" claim backed by a command that was run, with output?
+7. Which specification section or quoted owner statement does the change
+   implement? (A tracker summary alone is not enough, rule 8.)

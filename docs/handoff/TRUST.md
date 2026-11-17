@@ -31,7 +31,10 @@ packages ok).
 | Dump fetch and verify | `ingest/wikipedia/fetch-dump.sh` | Run on simplewiki 20261101 (both files verified; tampered file fails with status 1); not on enwiki. |
 | Worker command | `ingest/wikipedia/worker-local.sh` | Tested against a mock server only; never against a model. |
 | Grid Engine template | `ingest/wikipedia/sge-array.sh` | Run locally with `SGE_TASK_ID` set (13 chunks, mock model, all output imported); never submitted to a scheduler. |
-| Worker instructions | `ingest/wikipedia/WORKER_PROMPT.md` | Never given to a model. |
+| Worker instructions | `ingest/wikipedia/WORKER_PROMPT.md` | Never given to a model. `supported_by` (the SUPPORTS relation of `premise-decomposition.md` §3.2) added 2026-11-17. |
+| Template expansion (`wikiextract -templates`) | `cmd/wikiextract/expand.go` | About 30 times slower than without it (partial run); Lua-module templates expand to nothing. Off by default; leave it off. |
+| Graph view, argument builder | `internal/api/view.go`, `builder.go` | Built from the owner's quoted requests (`72i`, `dmz`); rendered in headless Chromium only. |
+| Draft text from premises (`val draft`) | `cmd/val/draft.go`, `internal/llm` | Built from the owner's quoted request (`3xe`) and `llm-integration.md`; tested against a mock model only. |
 
 ## C. Do not build on without the owner's decision
 
@@ -43,12 +46,15 @@ packages ok).
 | Glossary | `docs/working-terms.md` | Contains category names coined in conversation. Not specification. |
 | Reference list | `resources/references.md` | Some entries are marked unverified. |
 | Wikipedia epic `validatorium-1tc` | Beads | Created by the agent from a conversation, without a request to create records; overlaps `validatorium-x3g`. Use `x3g`. |
+| Decision records `elu`, `7oj`, `o2u`, `wfl`, `8gv`, `cfb`, `ilv` | Beads | Their DECISION text is an agent-written summary, not the owner's words (labelled 2026-11-17). Build only from the specification or the owner's quoted words (`RULES.md` rule 8). |
+| Method execution inside `val` | `internal/evaluate`, `internal/wikidata` | `data-model.md` §11 places method execution with an orchestrator outside the core; decision `validatorium-1hx`. |
 | Curation epic `validatorium-8e6` | Beads | Task titles came from conversation; the specification text is the owner's to write. |
 
 ## D. Not implemented
 
 See `docs/BUILD_STATE.md` "Not yet implemented". Notably: `temporal_policy`
-(`data-model.md` §2, §8) has no code; promotion does not sign records;
+(`data-model.md` §2, §8) has no code; records are not signed (promotion
+signing was built from a tracker summary and reverted on 2026-11-17);
 no indexed search (the API scans).
 
 ## E. Known incident state
