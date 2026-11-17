@@ -29,7 +29,7 @@ func TestExpandTemplates(t *testing.T) {
 	if got := dropBlockTemplates("{{Infobox|a={{x}}\n|b=1}}\nText {{Greet}} here.\n{{Navbox}}"); got != "\nText {{Greet}} here.\n" {
 		t.Errorf("dropBlockTemplates = %q", got)
 	}
-	if got := transcludedBody("a<noinclude>b</noinclude><includeonly>c</includeonly>"); got != "ac" {
+	if got := transcludedBody("a<!-- param 1 is the year --><noinclude>b</noinclude><includeonly>c</includeonly>"); got != "ac" {
 		t.Errorf("transcludedBody = %q", got)
 	}
 }

@@ -40,6 +40,7 @@ func normTemplateName(n string) string {
 
 // transcludedBody returns what a template page contributes when used.
 func transcludedBody(src string) string {
+	src = reComment.ReplaceAllString(src, "") // comments are documentation, never output
 	if m := reOnlyIncl.FindAllStringSubmatch(src, -1); m != nil {
 		var b strings.Builder
 		for _, x := range m {
