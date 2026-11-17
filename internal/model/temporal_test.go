@@ -5,25 +5,25 @@ import (
 	"time"
 )
 
-func TestTemporalPolicyJeffScopes(t *testing.T) {
-	said := time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC)
-	// "My favorite food is Pop-Tarts": holds as of the date stated, open-ended.
-	asOf := &TemporalPolicy{ValidTime: &Interval{Start: said.Format(time.RFC3339)}}
-	// "The kind they used to make": a closed period that has ended.
-	usedTo := &TemporalPolicy{ValidTime: &Interval{Start: "1990-01-01T00:00:00Z", End: "2005-01-01T00:00:00Z"}}
-	for _, p := range []*TemporalPolicy{asOf, usedTo, nil} {
+func TestTemporalPolicyIntervals(t *testing.T) {
+	start := time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC)
+	// Open-ended interval starting at a given time.
+	openEnded := &TemporalPolicy{ValidTime: &Interval{Start: start.Format(time.RFC3339)}}
+	// Closed interval entirely in the past.
+	closedPast := &TemporalPolicy{ValidTime: &Interval{Start: "1990-01-01T00:00:00Z", End: "2005-01-01T00:00:00Z"}}
+	for _, p := range []*TemporalPolicy{openEnded, closedPast, nil} {
 		if err := p.Validate(); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if asOf.ActiveAt(said.Add(-time.Hour)) || !asOf.ActiveAt(said.Add(time.Hour)) {
-		t.Fatal("as-of scope wrong")
+	if openEnded.ActiveAt(start.Add(-time.Hour)) || !openEnded.ActiveAt(start.Add(time.Hour)) {
+		t.Fatal("open-ended interval wrong")
 	}
-	if !usedTo.ActiveAt(time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC)) || usedTo.ActiveAt(said) {
-		t.Fatal("used-to scope wrong")
+	if !closedPast.ActiveAt(time.Date(1999, 1, 1, 0, 0, 0, 0, time.UTC)) || closedPast.ActiveAt(start) {
+		t.Fatal("closed past interval wrong")
 	}
 	var none *TemporalPolicy
-	if !none.ActiveAt(said) {
+	if !none.ActiveAt(start) {
 		t.Fatal("nil policy must be active")
 	}
 	bad := []*TemporalPolicy{
