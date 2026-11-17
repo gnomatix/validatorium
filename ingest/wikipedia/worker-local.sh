@@ -9,7 +9,13 @@
 # Environment:
 #   WORKER_URL    default http://127.0.0.1:8080/v1/chat/completions
 #   WORKER_MODEL  model name the server expects (default "local")
-#   WORKER_TIMEOUT seconds per article (default 600)
+#   WORKER_TIMEOUT seconds per request (default 600)
+#   WORKER_MAX_CHARS split the article text at paragraph breaks into parts of at
+#                 most this many characters, one request per part (default 0:
+#                 no split). A single paragraph longer than the limit is sent
+#                 alone. Local ids are prefixed with the part number (s2-p1) so
+#                 they stay unique within the article; depends_on is rewritten
+#                 the same way.
 #
 # Prints only lines that are JSON objects; anything else the model wrote is
 # dropped and counted on standard error. Exits non-zero when the server
@@ -23,15 +29,40 @@ article=$(cat)
 # Instructions start after the first line that is exactly "---".
 sys=$(awk 'f{print} /^---$/{f=1}' "$prompt")
 [ -n "$sys" ] || sys=$(cat "$prompt")
-req=$(jq -n --arg m "$model" --arg s "$sys" --arg a "$article" \
-	'{model:$m, temperature:0, stream:false, messages:[{role:"system",content:$s},{role:"user",content:$a}]}')
-resp=$(printf '%s' "$req" | curl -sS --fail-with-body -m "${WORKER_TIMEOUT:-600}" \
-	-H 'Content-Type: application/json' --data-binary @- "$url") || {
-	echo "worker-local: request failed: $resp" >&2; exit 3; }
-out=$(printf '%s' "$resp" | jq -r '.choices[0].message.content // empty')
+ask() { # $1 = article JSON; prints the model reply text
+	req=$(jq -n --arg m "$model" --arg s "$sys" --arg a "$1" \
+		'{model:$m, temperature:0, stream:false, messages:[{role:"system",content:$s},{role:"user",content:$a}]}')
+	resp=$(printf '%s' "$req" | curl -sS --fail-with-body -m "${WORKER_TIMEOUT:-600}" \
+		-H 'Content-Type: application/json' --data-binary @- "$url") || {
+		echo "worker-local: request failed: $resp" >&2; return 3; }
+	printf '%s' "$resp" | jq -r '.choices[0].message.content // empty'
+}
+max=${WORKER_MAX_CHARS:-0}
+parts=$(printf '%s' "$article" | jq -c --argjson max "$max" '
+	. as $a
+	| if $max <= 0 then [$a.text] else
+		reduce ($a.text | split("\n\n")[]) as $p ([];
+			if length > 0 and ((.[-1] | length) + 2 + ($p | length)) <= $max
+			then .[-1] += "\n\n" + $p else . + [$p] end)
+	  end
+	| to_entries[] | .value as $t | {i: (.key + 1), article: ($a | .text = $t)}' 2>/dev/null) || true
+total=$(printf '%s\n' "$parts" | grep -c . || true)
+[ "$total" -gt 0 ] || { echo "worker-local: input is not an article object" >&2; exit 2; }
+out=""
+printf '%s\n' "$parts" > "${TMPDIR:-/tmp}/worker-local.$$"
+while IFS= read -r part; do
+	i=$(printf '%s' "$part" | jq -r .i)
+	reply=$(ask "$(printf '%s' "$part" | jq -c .article)") || { rm -f "${TMPDIR:-/tmp}/worker-local.$$"; exit 3; }
+	if [ "$total" -gt 1 ]; then
+		reply=$(printf '%s\n' "$reply" | jq -R -r --arg pre "s$i-" 'fromjson? // . | if type=="object" then (.local_id |= ($pre + tostring) | .depends_on |= ((. // []) | map($pre + tostring))) | tojson else . end')
+	fi
+	out="$out$reply
+"
+done < "${TMPDIR:-/tmp}/worker-local.$$"
+rm -f "${TMPDIR:-/tmp}/worker-local.$$"
 good=$(printf '%s\n' "$out" | jq -R -c 'fromjson? | select(type=="object")')
-total=$(printf '%s\n' "$out" | grep -c . || true)
+total_lines=$(printf '%s\n' "$out" | grep -c . || true)
 kept=$(printf '%s\n' "$good" | grep -c . || true)
-[ "$kept" -gt 0 ] || { echo "worker-local: no valid JSON line in the reply ($total lines)" >&2; exit 4; }
-[ "$kept" -eq "$total" ] || echo "worker-local: dropped $((total-kept)) of $total lines that were not JSON objects" >&2
+[ "$kept" -gt 0 ] || { echo "worker-local: no valid JSON line in the reply ($total_lines lines)" >&2; exit 4; }
+[ "$kept" -eq "$total_lines" ] || echo "worker-local: dropped $((total_lines-kept)) of $total_lines lines that were not JSON objects" >&2
 printf '%s\n' "$good"
