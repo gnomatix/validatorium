@@ -1,8 +1,9 @@
 # References
 
 Bibliographic references only; full texts of these works are under copyright
-and are not stored here. "PubMed-verified" means the citation was matched to
-the PMID shown on 2026-11-16. Entries marked "unverified" were given from
+and are not stored here. "PubMed-verified" means only that the PMID shown was found in PubMed on
+2026-11-16 for this citation; the article was not read against the point it is
+cited for. Entries marked "unverified" were given from
 memory and still need checking against the publisher's record.
 
 ## Networks: core nodes, hubs and essentiality

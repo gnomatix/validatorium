@@ -3,7 +3,7 @@
 This folder holds reference material. It is not specification: the specs in
 `docs/specs/` define Validatorium, and nothing here changes them. Read these
 materials for background when working on how claims, links and evidence can
-be manipulated, and on what the record model must make visible.
+be manipulated.
 
 ## Why these resources are here
 
@@ -15,9 +15,9 @@ attribution, authority, popularity and consensus carry no evidential weight
 The ways a false claim is made to look true are therefore directly relevant.
 A record system that links premises can be used to borrow credibility: a weak
 claim is placed next to, or linked to, a well-supported one, and readers
-accept it because of the proximity. Knowing the documented techniques tells
-us what the records, links and signatures must expose so that such a move can
-be seen and examined.
+accept it because of the proximity. The documented techniques are background
+for seeing how such a move is made; what the records must show is set by the
+specifications, not by this folder.
 
 ## propaganda-analysis/
 
@@ -29,12 +29,10 @@ Propaganda* (1939), and *Propaganda, How to Recognize It and Deal With It*
 - define the classic propaganda devices with worked examples, including
   "transfer" (carrying the prestige of something respected over to something
   else) and "card stacking" (selective use of true facts to support a false
-  impression), which are the record-level manipulations Validatorium must
-  make detectable;
+  impression);
 - analyse real campaigns of the period line by line, which gives concrete
   test cases for how a manipulative chain of claims is built;
-- describe countermeasures aimed at the reader, the precursor of what is now
-  called prebunking or inoculation.
+- describe countermeasures aimed at the reader.
 
 All items are public domain (Creative Commons Public Domain Mark 1.0 on the
 Internet Archive). Each folder has the scanned PDF (Git LFS; run
