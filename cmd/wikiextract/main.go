@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -53,6 +54,8 @@ func main() {
 	max := flag.Int("max", 0, "stop after this many articles (0 = all)")
 	minLen := flag.Int("min-chars", 200, "skip articles whose stripped text is shorter than this")
 	titlesFile := flag.String("titles", "", "file of article titles, one per line; only these are extracted")
+	index := flag.String("index", "", "multistream index (.txt or .txt.bz2) for -in; with it the bz2 streams are decoded in parallel")
+	workers := flag.Int("workers", runtime.NumCPU(), "parallel stream decoders when -index is given")
 	flag.Parse()
 	if *titlesFile != "" {
 		b, err := os.ReadFile(*titlesFile)
@@ -67,7 +70,13 @@ func main() {
 			}
 		}
 	}
-	n, err := run(*in, *wiki, *max, *minLen, os.Stdout)
+	var n int
+	var err error
+	if *index != "" {
+		n, err = runParallel(*in, *index, *wiki, *max, *minLen, *workers, os.Stdout)
+	} else {
+		n, err = run(*in, *wiki, *max, *minLen, os.Stdout)
+	}
 	fmt.Fprintf(os.Stderr, "wikiextract: wrote %d articles\n", n)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "wikiextract:", err)
@@ -117,15 +126,11 @@ func extract(r io.Reader, wiki string, max, minLen int, out io.Writer) (int, err
 		if err := dec.DecodeElement(&p, &se); err != nil {
 			return n, err
 		}
-		if p.NS != 0 || p.Redirect != nil || (titles != nil && !titles[p.Title]) {
+		a := convert(&p, wiki, minLen)
+		if a == nil {
 			continue
 		}
-		marked, refs := extractRefs(p.Revision.Text)
-		text := Strip(marked)
-		if len(text) < minLen {
-			continue
-		}
-		if err := enc.Encode(article{Wiki: wiki, PageID: p.ID, Title: p.Title, RevID: p.Revision.ID, Text: text, Refs: refs}); err != nil {
+		if err := enc.Encode(a); err != nil {
 			return n, err
 		}
 		n++
@@ -133,4 +138,19 @@ func extract(r io.Reader, wiki string, max, minLen int, out io.Writer) (int, err
 			return n, nil
 		}
 	}
+}
+
+// convert turns one dump page into an article, or nil when the page is not a
+// main-namespace article, is a redirect, is not in the title list, or is
+// shorter than minLen after stripping.
+func convert(p *page, wiki string, minLen int) *article {
+	if p.NS != 0 || p.Redirect != nil || (titles != nil && !titles[p.Title]) {
+		return nil
+	}
+	marked, refs := extractRefs(p.Revision.Text)
+	text := Strip(marked)
+	if len(text) < minLen {
+		return nil
+	}
+	return &article{Wiki: wiki, PageID: p.ID, Title: p.Title, RevID: p.Revision.ID, Text: text, Refs: refs}
 }

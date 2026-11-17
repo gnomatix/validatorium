@@ -16,6 +16,9 @@ the exact article revision it came from, as a pointer to the source.
    ```sh
    go build -o wikiextract ./cmd/wikiextract
    ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 > articles.jsonl
+   # parallel: decode the bz2 streams concurrently using the published index
+   ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 \
+     -index enwiki-latest-pages-articles-multistream-index.txt.bz2 -workers 24 > articles.jsonl
    ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 -max 500 > sample.jsonl
    ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 -titles elements.txt > elements.jsonl
    ```

@@ -16,6 +16,7 @@ Each figure names where it came from.
 | Download of 27.0 GB at 50 MB/s | about 9 minutes | arithmetic |
 | Extractor rate, one thread | about 1,440 articles per second; about 2.6 MB of compressed input per second | measured 2026-11-17 on simplewiki-20261101 in a cloud container (`validatorium-x3g.14`) |
 | Extraction of 27.0 GB at that rate | about 2.9 hours on one thread | arithmetic from the row above; the machine differs |
+| Extractor with `-index`, 4 workers | 58 s for the same dump (150 s serial); output byte-identical | measured 2026-11-17, same container (`validatorium-x3g.11`) |
 | Full decomposition in 2 hours needs | N articles / 7,200 seconds | N from stage 2 |
 
 The decomposition rate of local models on this machine is unknown until
@@ -34,7 +35,7 @@ published until an evaluator for these premises exists
 |---|---|---|---|---|
 | 0 | Build | none (no code change) | `go build -mod=vendor -o val ./cmd/val && go build -mod=vendor -o wikiextract ./cmd/wikiextract` | both binaries run `-h` |
 | 1 | Get the dump and verify it | `validatorium-x3g.12` | download dump and index (torrent or HTTPS); compare with the published `sha1sums`/`md5sums` file | checksum matches; dump date recorded in the task |
-| 2 | Extract | `validatorium-x3g.14` | `./wikiextract -in DUMP -max 500 > sample.jsonl`; read 20 by eye; then `./wikiextract -in DUMP > articles.jsonl` | counts and wall time recorded; defects filed |
+| 2 | Extract | `validatorium-x3g.14` | `./wikiextract -in DUMP -max 500 > sample.jsonl`; read 20 by eye; then `./wikiextract -in DUMP -index INDEX -workers 24 > articles.jsonl` | counts and wall time recorded; defects filed |
 | 2a | Title list | `validatorium-x3g.1` | list of chemical-element article titles from Wikidata; `./wikiextract -in DUMP -titles elements.txt > elements.jsonl` | about 118 articles extracted |
 | 3 | Worker command | `validatorium-x3g.15` | start a local model server; `export WORKER_CMD=ingest/wikipedia/worker-local.sh WORKER_URL=... WORKER_MODEL=...` | one article in, valid JSON Lines out |
 | 4 | Sample decomposition | `validatorium-x3g.16` | `split -l 10 -d -a 5 elements.jsonl chunks/articles.`; `qsub -t 1-$N -tc 8 -cwd -o logs -e logs ingest/wikipedia/sge-array.sh` | all chunks have `out/*.jsonl`; articles per hour recorded per model |
