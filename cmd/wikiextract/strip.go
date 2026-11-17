@@ -39,6 +39,7 @@ func Strip(s string) string {
 	s = reSwitch.ReplaceAllString(s, "") // behaviour switches such as __NOTOC__
 	s = reMath.ReplaceAllString(s, "$1") // keep the formula source so the sentence stays whole
 	s = renderInline(s)
+	s = expandTemplates(s)
 	s = removeNested(s, "{{", "}}")
 	s = removeNested(s, "{|", "|}")
 	s = links(s)

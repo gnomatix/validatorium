@@ -61,6 +61,7 @@ func main() {
 	minLen := flag.Int("min-chars", 200, "skip articles whose stripped text is shorter than this")
 	titlesFile := flag.String("titles", "", "file of article titles, one per line; only these are extracted")
 	index := flag.String("index", "", "multistream index (.txt or .txt.bz2) for -in; with it the bz2 streams are decoded in parallel")
+	expand := flag.Bool("templates", false, "expand templates from the dump's own Template pages (an extra pass over the dump first)")
 	flag.BoolVar(&withSentences, "sentences", false, "add rule-based sentence spans, with the citations bound to each, to every article")
 	workers := flag.Int("workers", runtime.NumCPU(), "parallel stream decoders when -index is given")
 	flag.Parse()
@@ -76,6 +77,15 @@ func main() {
 				titles[t] = true
 			}
 		}
+	}
+	if *expand {
+		t, err := loadTemplates(*in)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "wikiextract: templates:", err)
+			os.Exit(1)
+		}
+		templates = t
+		fmt.Fprintf(os.Stderr, "wikiextract: loaded %d templates\n", len(t))
 	}
 	var n int
 	var err error
