@@ -64,10 +64,11 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
 - Evaluation (`internal/evaluate`): an `Evaluator` interface and a registry
   that selects the evaluator by the premise's MP:Method reference and returns
   an immutable attestation for the exact premise version, without writing.
-  One evaluator exists: runtime file digest
+  In this package one evaluator exists: runtime file digest
   (`urn:validatorium:method:file-sha256`), which returns true on a SHA-256
   match, false on a mismatch, and indeterminate when the file cannot be read,
-  and records the content identifier of the bytes it read as evidence
+  and records the content identifier of the bytes it read as evidence. A
+  second evaluator, `wikidata-statement`, is in `internal/wikidata` (above)
 - Automatic publication on validity (`internal/autopublish`): evaluates a
   working-store candidate with the evaluator registered for its method,
   records the attestation whatever its result, and publishes the candidate
