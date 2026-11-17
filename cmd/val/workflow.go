@@ -37,6 +37,7 @@ var subcommands = map[string]func(args []string, out io.Writer) error{
 	"publish":      cmdPublish,
 	"import":       cmdImport,
 	"api":          cmdAPI,
+	"draft":        cmdDraft,
 }
 
 // cmdAPI serves the self-certification registry HTTP API until interrupted.

@@ -85,6 +85,11 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   toolkit (stored in the browser), mark a claim and its supporting or
   attacking premises, and get the argument in Argdown
   (`argdown-conventions.md` §1, §2.2, §4.1–4.2).
+  `val draft -uuid A,B [-glue FILE]` asks a local model (OpenAI-compatible
+  endpoint, default Ollama on 127.0.0.1:11434, model gemma4) to draft prose
+  from those premises in that order, joined by the author's glue text; the
+  output is labelled as a draft. `internal/llm` refuses any endpoint that is
+  not a loopback address (`llm-integration.md`: no data leaves the machine).
   `val api -publish` serves `POST /api/premises/{uuid}/validate` (optional body
   `{"scope": {...}}`), which runs the same evaluation and publication for one
   candidate and answers with the result, the method and, when published, the
