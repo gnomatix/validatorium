@@ -76,3 +76,8 @@ _Add a brief overview of your project architecture_
 ## Conventions & Patterns
 
 _Add your project-specific conventions here_
+
+## Working rules and handoff (read first)
+
+Binding rules: `docs/handoff/RULES.md`. Trust register: `docs/handoff/TRUST.md`.
+Run `scripts/guard.sh` before every commit.

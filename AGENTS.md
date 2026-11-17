@@ -125,3 +125,10 @@ bd prime                # Refresh Beads context
 
 **Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/core-concepts/sync-concepts.md for details and anti-patterns.
 <!-- END BEADS CODEX SETUP -->
+
+## Working rules and handoff (read first)
+
+Binding rules for every agent: [`docs/handoff/RULES.md`](docs/handoff/RULES.md).
+What is verified and what is not: [`docs/handoff/TRUST.md`](docs/handoff/TRUST.md).
+Run `scripts/guard.sh` before every commit; enable the push hook once per
+clone with `git config core.hooksPath .githooks`.
