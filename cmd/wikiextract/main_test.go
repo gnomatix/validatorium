@@ -93,3 +93,14 @@ func TestTitlesFilter(t *testing.T) {
 		t.Fatalf("kept: n=%d err=%v", n, err)
 	}
 }
+
+func TestStripDropsUnmatchedTableRows(t *testing.T) {
+	in := "First sentence.\n|-id=1 bgcolor=#fefefe\n| 1 || || x\n! Header\n| name = X\nSecond sentence."
+	got := Strip(in)
+	if strings.Contains(got, "|") || strings.Contains(got, "Header") {
+		t.Fatalf("table rows left in text: %q", got)
+	}
+	if !strings.Contains(got, "First sentence.") || !strings.Contains(got, "Second sentence.") {
+		t.Fatalf("prose lost: %q", got)
+	}
+}

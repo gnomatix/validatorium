@@ -15,6 +15,7 @@ var (
 	reHeading  = regexp.MustCompile(`(?m)^=+\s*(.*?)\s*=+\s*$`)
 	reBoldItal = regexp.MustCompile(`'{2,5}`)
 	reListMark = regexp.MustCompile(`(?m)^[*#:;]+\s*`)
+	reTableRow = regexp.MustCompile(`(?m)^[ \t]*[|!].*$`)
 	reSpaces   = regexp.MustCompile(`[ \t]+`)
 	reBlank    = regexp.MustCompile(`\n{3,}`)
 	reStopHead = regexp.MustCompile(`(?mi)^==\s*(references|notes|see also|external links|further reading|bibliography|sources|citations)\s*==\s*$`)
@@ -40,6 +41,7 @@ func Strip(s string) string {
 	s = reHeading.ReplaceAllString(s, "$1.")
 	s = reBoldItal.ReplaceAllString(s, "")
 	s = reListMark.ReplaceAllString(s, "")
+	s = reTableRow.ReplaceAllString(s, "") // rows of tables and infoboxes whose opening was not matched
 	s = html.UnescapeString(s)
 	s = reSpaces.ReplaceAllString(s, " ")
 	lines := strings.Split(s, "\n")
