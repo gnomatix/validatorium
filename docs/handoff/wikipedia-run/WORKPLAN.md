@@ -44,6 +44,20 @@ published until an evaluator for these premises exists
 | 7 | Go / no-go for a larger run | `validatorium-x3g.16` | compare the measured rate with the table above | decision recorded with the numbers |
 | 8 | Evaluator for these premises | `validatorium-x3g.3` | implement per the task; needs the owner's approval of agent and model | a premise can receive an attestation |
 
+## Without Grid Engine
+
+The same task script runs without a scheduler, one task per chunk:
+
+```sh
+N=$(ls chunks/articles.* | wc -l)
+seq 1 $N | xargs -P 8 -I{} env SGE_TASK_ID={} ingest/wikipedia/sge-array.sh
+```
+
+Checked 2026-11-17 in a cloud container against a mock model server: 13 chunks
+of the element articles (130 articles), 148 output lines, all imported
+(created 148, rejected 0). The mock returns one premise per request; a real
+model has not been run.
+
 ## Known limits going in
 
 - `wikiextract` is single-threaded and strips markup with regular
