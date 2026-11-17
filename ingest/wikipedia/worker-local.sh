@@ -9,6 +9,9 @@
 # Environment:
 #   WORKER_URL    default http://127.0.0.1:8080/v1/chat/completions
 #   WORKER_MODEL  model name the server expects (default "local")
+#   WORKER_ESCALATE space-separated further model names, tried in order on the
+#                 same endpoint when a model returns no valid premise line for
+#                 a part (small model first, larger models after)
 #   WORKER_TIMEOUT seconds per request (default 600)
 #   WORKER_MAX_CHARS split the article text at paragraph breaks into parts of at
 #                 most this many characters, one request per part (default 0:
@@ -24,6 +27,7 @@ set -eu
 prompt=${1:?usage: worker-local.sh INSTRUCTIONS_FILE}
 url=${WORKER_URL:-http://127.0.0.1:8080/v1/chat/completions}
 model=${WORKER_MODEL:-local}
+first_model=$model
 article=$(cat)
 [ -n "$article" ] || { echo "worker-local: empty input" >&2; exit 2; }
 # Instructions start after the first line that is exactly "---".
@@ -52,9 +56,17 @@ out=""
 printf '%s\n' "$parts" > "${TMPDIR:-/tmp}/worker-local.$$"
 while IFS= read -r part; do
 	i=$(printf '%s' "$part" | jq -r .i)
-	reply=$(ask "$(printf '%s' "$part" | jq -c .article)") || { rm -f "${TMPDIR:-/tmp}/worker-local.$$"; exit 3; }
+	reply=""
+	for m in $first_model ${WORKER_ESCALATE:-}; do
+		model=$m
+		reply=$(ask "$(printf '%s' "$part" | jq -c .article)") || { rm -f "${TMPDIR:-/tmp}/worker-local.$"; exit 3; }
+		if printf '%s\n' "$reply" | jq -R -e 'fromjson? | select(type=="object")' >/dev/null 2>&1; then
+			break
+		fi
+		echo "worker-local: part $i: no valid line from $m" >&2
+	done
 	if [ "$total" -gt 1 ]; then
-		reply=$(printf '%s\n' "$reply" | jq -R -r --arg pre "s$i-" 'fromjson? // . | if type=="object" then (.local_id |= ($pre + tostring) | .depends_on |= ((. // []) | map($pre + tostring))) | tojson else . end')
+		reply=$(printf '%s\n' "$reply" | jq -R -r --arg pre "s$i-" 'fromjson? // . | if type=="object" then (.local_id |= ($pre + tostring) | .depends_on |= ((. // []) | map($pre + tostring)) | .supported_by |= ((. // []) | map($pre + tostring))) | tojson else . end')
 	fi
 	out="$out$reply
 "
