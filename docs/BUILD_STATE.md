@@ -75,6 +75,9 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   (with namespaced pointers) only when the attestation establishes validity;
   admission rules stay in `internal/promote`. `val publish` runs it against
   the on-disk Kubo/go-orbit-db global store (or `-offline` for an isolated node).
+  With `-sign-key` (an armored OpenPGP private key file), every published
+  version is signed and the signature record kept in the working store, so
+  every version a key published can be listed (`SignaturesBySigner`).
   `val api -publish` serves `POST /api/premises/{uuid}/validate` (optional body
   `{"scope": {...}}`), which runs the same evaluation and publication for one
   candidate and answers with the result, the method and, when published, the

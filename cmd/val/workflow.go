@@ -51,6 +51,7 @@ func cmdAPI(args []string, out io.Writer) error {
 	offline := fs.Bool("offline", false, "with -publish: run the IPFS node on an isolated in-process network")
 	evaluator := fs.String("evaluator", "gemini-cli", "with -publish: evaluator identity recorded on attestations (attribution only)")
 	nsList := fs.String("ns", "", "with -publish: comma-separated namespaces to place published versions in")
+	signKey := fs.String("sign-key", "", "with -publish: armored OpenPGP private key file; signs every published version")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -63,7 +64,7 @@ func cmdAPI(args []string, out io.Writer) error {
 	defer stop()
 	handler := &api.Server{Store: st}
 	if *publish {
-		pub, closeGlobal, err := newPublisher(ctx, st, *offline, *ipfsRepo, *orbitDir, *pointerDB, *evaluator, *nsList)
+		pub, closeGlobal, err := newPublisher(ctx, st, *offline, *ipfsRepo, *orbitDir, *pointerDB, *evaluator, *nsList, *signKey)
 		if err != nil {
 			return err
 		}
