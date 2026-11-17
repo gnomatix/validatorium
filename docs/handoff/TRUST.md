@@ -33,8 +33,8 @@ packages ok).
 | Grid Engine template | `ingest/wikipedia/sge-array.sh` | Run locally with `SGE_TASK_ID` set (13 chunks, mock model, all output imported); never submitted to a scheduler. |
 | Worker instructions | `ingest/wikipedia/WORKER_PROMPT.md` | Never given to a model. `supported_by` (the SUPPORTS relation of `premise-decomposition.md` §3.2) added 2026-11-17. |
 | Template expansion (`wikiextract -templates`) | `cmd/wikiextract/expand.go` | About 30 times slower than without it (partial run); Lua-module templates expand to nothing. Off by default; leave it off. |
-| Graph view, argument builder | `internal/api/view.go`, `builder.go` | Built from the owner's quoted requests (`72i`, `dmz`); rendered in headless Chromium only. |
-| Draft text from premises (`val draft`) | `cmd/val/draft.go`, `internal/llm` | Built from the owner's quoted request (`3xe`) and `llm-integration.md`; tested against a mock model only. |
+| Graph view, argument builder | `internal/api/view.go`, `builder.go` | Built from requests that the tracker records (`72i`, `dmz`, created 2026-07-14) mark as the owner's verbatim words; that conversation is not available in this session, so the quotes are unconfirmed. Rendered in headless Chromium only. |
+| Draft text from premises (`val draft`) | `cmd/val/draft.go`, `internal/llm` | Built from `llm-integration.md` and a request the tracker record `3xe` (created 2026-07-14) marks as the owner's verbatim words, unconfirmed here; tested against a mock model only. |
 
 ## C. Do not build on without the owner's decision
 
