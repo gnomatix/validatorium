@@ -54,6 +54,9 @@ func (s *Server) validatePremise(w http.ResponseWriter, r *http.Request, uuid st
 	case errors.Is(err, storage.ErrNotFound):
 		writeErr(w, http.StatusNotFound, "no such candidate")
 		return
+	case errors.Is(err, evaluate.ErrBadScope):
+		writeErr(w, http.StatusBadRequest, err.Error())
+		return
 	case errors.Is(err, evaluate.ErrNoMethod):
 		writeErr(w, http.StatusUnprocessableEntity, err.Error())
 		return

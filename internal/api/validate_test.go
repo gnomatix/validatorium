@@ -23,6 +23,8 @@ func (f *fakeValidator) Run(_ context.Context, id string, scope map[string]inter
 	switch id {
 	case "missing":
 		return autopublish.Outcome{}, fmt.Errorf("autopublish %s: load candidate: %w", id, storage.ErrNotFound)
+	case "badscope":
+		return autopublish.Outcome{}, fmt.Errorf("autopublish %s: %w", id, evaluate.ErrBadScope)
 	case "nomethod":
 		return autopublish.Outcome{}, fmt.Errorf("autopublish %s: %w", id, evaluate.ErrNoMethod)
 	case "false":
@@ -76,6 +78,9 @@ func TestValidateRoute(t *testing.T) {
 	}
 	if code, _ := postValidate(t, srv.URL, "nomethod", ""); code != http.StatusUnprocessableEntity {
 		t.Fatalf("no method: %d, want 422", code)
+	}
+	if code, _ := postValidate(t, srv.URL, "badscope", ""); code != http.StatusBadRequest {
+		t.Fatalf("bad scope: %d, want 400", code)
 	}
 	if code, _ := postValidate(t, srv.URL, "u1", "{"); code != http.StatusBadRequest {
 		t.Fatalf("bad JSON: %d, want 400", code)
