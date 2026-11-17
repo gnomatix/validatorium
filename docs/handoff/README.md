@@ -9,6 +9,7 @@ any model). Read in this order:
 3. [`wikipedia-run/WORKPLAN.md`](wikipedia-run/WORKPLAN.md): the Wikipedia
    ingestion run, stage by stage, with the Beads record for each stage.
 4. [`MODELS.md`](MODELS.md): which kind of model for which kind of task.
+5. [`briefs/`](briefs/): worker briefs for single tasks, each with acceptance tests.
 
 Tasks live in Beads (`bd ready`, `bd show <id>`), not in these files.
 The specification is `docs/specs/`. It is the authority; these files are not.
