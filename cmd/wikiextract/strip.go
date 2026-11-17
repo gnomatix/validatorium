@@ -9,6 +9,7 @@ import (
 var (
 	reComment  = regexp.MustCompile(`(?s)<!--.*?-->`)
 	reDropTags = regexp.MustCompile(`(?is)<(gallery|syntaxhighlight|source|timeline|score|imagemap|graph|mapframe)[^>]*>.*?</(gallery|syntaxhighlight|source|timeline|score|imagemap|graph|mapframe)>`)
+	reSwitch   = regexp.MustCompile(`__[A-Z]+__`)
 	reMath     = regexp.MustCompile(`(?is)<math[^>]*>(.*?)</math>`)
 	reTag      = regexp.MustCompile(`</?[a-zA-Z][^>]*>`)
 	reExtLink  = regexp.MustCompile(`\[(?:https?:)?//[^\s\]]+\s+([^\]]+)\]`)
@@ -33,6 +34,7 @@ func Strip(s string) string {
 	}
 	s = reComment.ReplaceAllString(s, "")
 	s = reDropTags.ReplaceAllString(s, "")
+	s = reSwitch.ReplaceAllString(s, "") // behaviour switches such as __NOTOC__
 	s = reMath.ReplaceAllString(s, "$1") // keep the formula source so the sentence stays whole
 	s = removeNested(s, "{{", "}}")
 	s = removeNested(s, "{|", "|}")

@@ -111,3 +111,9 @@ func TestStripKeepsMathSource(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestStripRemovesBehaviourSwitches(t *testing.T) {
+	if got := Strip("__NOTOC__\nWater is wet. __FORCETOC__"); got != "Water is wet." {
+		t.Fatalf("got %q", got)
+	}
+}
