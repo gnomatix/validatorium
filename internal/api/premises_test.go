@@ -41,7 +41,7 @@ func TestPremiseLifecycleThroughAPI(t *testing.T) {
 	defer srv.Close()
 
 	// Anyone may state a premise; it starts as a candidate.
-	r, out := post(t, srv.URL+"/api/premises", map[string]interface{}{"statement": "Jeff's favorite food is strawberry Pop-Tarts.", "agent": "key:jeff"})
+	r, out := post(t, srv.URL+"/api/premises", map[string]interface{}{"statement": "Water boils at 100 degrees Celsius at a pressure of 101.325 kPa.", "agent": "key:test-agent"})
 	if r.StatusCode != 201 || out["status"] != StatusCandidate {
 		t.Fatalf("create: %d %v", r.StatusCode, out)
 	}
@@ -72,8 +72,8 @@ func TestPremiseLifecycleThroughAPI(t *testing.T) {
 	var res struct {
 		Results []PremiseView `json:"results"`
 	}
-	_, _ = post(t, srv.URL+"/api/premises", map[string]interface{}{"statement": "Strawberry is a flavor.", "agent": "key:other"})
-	if code := getJSON(t, srv.URL+"/api/premises?q="+url.QueryEscape("strawberry"), &res); code != 200 || len(res.Results) != 2 || res.Results[0].UUID != id {
+	_, _ = post(t, srv.URL+"/api/premises", map[string]interface{}{"statement": "Water is a compound of hydrogen and oxygen.", "agent": "key:other"})
+	if code := getJSON(t, srv.URL+"/api/premises?q="+url.QueryEscape("water"), &res); code != 200 || len(res.Results) != 2 || res.Results[0].UUID != id {
 		t.Fatalf("search: %d %+v", code, res)
 	}
 
