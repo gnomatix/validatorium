@@ -25,8 +25,9 @@ packages ok).
 
 | Component | Path | What is missing |
 |---|---|---|
-| Wikipedia extractor | `cmd/wikiextract` | Run on simplewiki-20261101 (214,908 articles, 2m30s); not on enwiki; output read for one article only. Markup stripping is regular expressions (`strip.go`), a heuristic. Single-threaded. |
+| Wikipedia extractor | `cmd/wikiextract` | Run on simplewiki-20261101 (214,908 articles; 150 s serial, 58 s with `-index -workers 4`, outputs byte-identical); not on enwiki; output read for one article only. Markup stripping is regular expressions (`strip.go`), a heuristic. Single-threaded. |
 | Import of worker output | `cmd/val/import.go` | Never run on model output. |
+| Dump fetch and verify | `ingest/wikipedia/fetch-dump.sh` | Run on simplewiki 20261101 (both files verified; tampered file fails with status 1); not on enwiki. |
 | Worker command | `ingest/wikipedia/worker-local.sh` | Tested against a mock server only; never against a model. |
 | Grid Engine template | `ingest/wikipedia/sge-array.sh` | Never submitted to a scheduler. `WORKER_CMD` is a placeholder. |
 | Worker instructions | `ingest/wikipedia/WORKER_PROMPT.md` | Never given to a model. |
