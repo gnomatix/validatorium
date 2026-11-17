@@ -5,8 +5,8 @@ names change faster than this file.
 
 | Role | Requirement | Suggested |
 |---|---|---|
-| Implementation of a Beads task in Go | Top coding model of the tool in use, highest reasoning setting | Codex: the newest `-codex` model in its model picker, effort high or max. Kiro: its default top model. |
-| Review of delivered changes | A different vendor's model from the implementer, using the checklist in `RULES.md` | Gemini (top Pro model) |
+| Implementation of a Beads task in Go | Top coding model of the tool in use, highest reasoning setting | Not verified here. Pick from the tool's own current model list. |
+| Review of delivered changes | A different vendor's model from the implementer, using the checklist in `RULES.md` | Not verified here. Pick from the vendor's current model list. |
 | Article decomposition (bulk) | Local, instruction-following, emits strict JSON Lines | To be measured in stage 4 of the work plan; candidates are whatever GGUF models fit the machine |
 | Decomposition cross-check | A second, different local model on the same articles | Same |
 

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Worker command for a local model served over the OpenAI-compatible chat
-# endpoint (llama.cpp `llama-server` and Ollama both serve one).
+# endpoint POST /v1/chat/completions. Documented by llama.cpp (tools/server/README.md)
+# and by Ollama (docs/api/openai-compatibility); both read 2026-11-17.
 #
 #   WORKER_CMD="ingest/wikipedia/worker-local.sh" (see sge-array.sh)
 #   usage: worker-local.sh INSTRUCTIONS_FILE < one-article.json > premises.jsonl

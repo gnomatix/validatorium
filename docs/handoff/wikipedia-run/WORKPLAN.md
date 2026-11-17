@@ -6,14 +6,17 @@ runtime, and a 1 Gbit connection. Pipeline details: `ingest/wikipedia/README.md`
 
 ## Numbers to plan against
 
-Sizes are from recall; confirm at <https://dumps.wikimedia.org/enwiki/latest/>.
+Each figure names where it came from.
 
-| Quantity | Value |
-|---|---|
-| `enwiki-latest-pages-articles-multistream.xml.bz2` | about 25 GB compressed, about 110 GB as XML |
-| Articles (main namespace, non-redirect) | about 7 million |
-| Download at 50 MB/s | 25 GB: about 9 minutes. 118 GB: about 40 minutes |
-| Full decomposition in 2 hours needs | about 970 articles per second |
+| Quantity | Value | Source |
+|---|---|---|
+| `enwiki-latest-pages-articles-multistream.xml.bz2` | 27,019,419,473 bytes (27.0 GB), dated 2026-11-07 | <https://dumps.wikimedia.org/enwiki/latest/>, read 2026-11-17 |
+| Size as XML after decompression | not verified | measure in stage 1 |
+| Article count (main namespace, non-redirect) | not verified | stage 2 prints it (`wikiextract: wrote N articles`) |
+| Download of 27.0 GB at 50 MB/s | about 9 minutes | arithmetic |
+| Extractor rate, one thread | about 1,440 articles per second; about 2.6 MB of compressed input per second | measured 2026-11-17 on simplewiki-20261101 in a cloud container (`validatorium-x3g.14`) |
+| Extraction of 27.0 GB at that rate | about 2.9 hours on one thread | arithmetic from the row above; the machine differs |
+| Full decomposition in 2 hours needs | N articles / 7,200 seconds | N from stage 2 |
 
 The decomposition rate of local models on this machine is unknown until
 stage 4 measures it. The 2-hour full run is decided by that number.

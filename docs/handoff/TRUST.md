@@ -41,7 +41,7 @@ packages ok).
 | Case study field names (`evidence_type: "self_report"`, `scope: {as_of}`) | `docs/case-studies/jeffs-favorite-food.md` | Invented labels where evidence and time ontologies exist. Not a model for any implementation. |
 | Glossary | `docs/working-terms.md` | Contains category names coined in conversation. Not specification. |
 | Reference list | `resources/references.md` | Some entries are marked unverified. |
-| Wikipedia epic `validatorium-1tc` | Beads | Created from usage talk; overlaps `validatorium-x3g`. Use `x3g`. |
+| Wikipedia epic `validatorium-1tc` | Beads | Created by the agent from a conversation, without a request to create records; overlaps `validatorium-x3g`. Use `x3g`. |
 | Curation epic `validatorium-8e6` | Beads | Task titles came from conversation; the specification text is the owner's to write. |
 
 ## D. Not implemented
