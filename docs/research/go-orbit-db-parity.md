@@ -64,5 +64,5 @@ a Go and a JavaScript peer.
 ## Not checked
 
 Minor JavaScript releases between the tags read; access-control
-enforcement on replication; interoperability between the Go and JavaScript
-implementations.
+enforcement on replication; signature verification and replication between a Go and a
+JavaScript peer.
