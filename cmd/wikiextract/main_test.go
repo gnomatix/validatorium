@@ -79,3 +79,17 @@ func TestMultistreamBzip2(t *testing.T) {
 		t.Fatalf("multistream: n=%d err=%v", n, err)
 	}
 }
+
+func TestTitlesFilter(t *testing.T) {
+	titles = map[string]bool{"Somewhere Else": true}
+	defer func() { titles = nil }()
+	var out bytes.Buffer
+	n, err := extract(strings.NewReader(sampleDump), "enwiki", 0, 50, &out)
+	if err != nil || n != 0 {
+		t.Fatalf("filtered out: n=%d err=%v", n, err)
+	}
+	titles = map[string]bool{"Ulm": true}
+	if n, err := extract(strings.NewReader(sampleDump), "enwiki", 0, 50, &out); err != nil || n != 1 {
+		t.Fatalf("kept: n=%d err=%v", n, err)
+	}
+}

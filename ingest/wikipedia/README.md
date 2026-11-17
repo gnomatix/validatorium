@@ -17,6 +17,7 @@ the exact article revision it came from, as a pointer to the source.
    go build -o wikiextract ./cmd/wikiextract
    ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 > articles.jsonl
    ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 -max 500 > sample.jsonl
+   ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 -titles elements.txt > elements.jsonl
    ```
 
    One JSON object per article: `wiki`, `page_id`, `title`, `rev_id`, plain

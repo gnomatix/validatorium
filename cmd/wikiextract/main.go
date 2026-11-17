@@ -35,6 +35,9 @@ type page struct {
 	} `xml:"revision"`
 }
 
+// titles, when not nil, limits extraction to these article titles.
+var titles map[string]bool
+
 type article struct {
 	Wiki   string `json:"wiki"`
 	PageID int64  `json:"page_id"`
@@ -49,7 +52,21 @@ func main() {
 	wiki := flag.String("wiki", "enwiki", "wiki identifier written to each record")
 	max := flag.Int("max", 0, "stop after this many articles (0 = all)")
 	minLen := flag.Int("min-chars", 200, "skip articles whose stripped text is shorter than this")
+	titlesFile := flag.String("titles", "", "file of article titles, one per line; only these are extracted")
 	flag.Parse()
+	if *titlesFile != "" {
+		b, err := os.ReadFile(*titlesFile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "wikiextract:", err)
+			os.Exit(1)
+		}
+		titles = map[string]bool{}
+		for _, t := range strings.Split(string(b), "\n") {
+			if t = strings.TrimSpace(strings.ReplaceAll(t, "_", " ")); t != "" {
+				titles[t] = true
+			}
+		}
+	}
 	n, err := run(*in, *wiki, *max, *minLen, os.Stdout)
 	fmt.Fprintf(os.Stderr, "wikiextract: wrote %d articles\n", n)
 	if err != nil {
@@ -100,7 +117,7 @@ func extract(r io.Reader, wiki string, max, minLen int, out io.Writer) (int, err
 		if err := dec.DecodeElement(&p, &se); err != nil {
 			return n, err
 		}
-		if p.NS != 0 || p.Redirect != nil {
+		if p.NS != 0 || p.Redirect != nil || (titles != nil && !titles[p.Title]) {
 			continue
 		}
 		marked, refs := extractRefs(p.Revision.Text)
