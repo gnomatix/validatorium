@@ -34,3 +34,17 @@ func TestPremiseViewPage(t *testing.T) {
 		t.Fatalf("library: %d %s %d bytes", code, ct, len(body))
 	}
 }
+
+func TestBuilderPage(t *testing.T) {
+	srv := httptest.NewServer(&Server{})
+	defer srv.Close()
+	resp, err := http.Get(srv.URL + "/builder")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 || !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/html") || !strings.Contains(string(b), "/api/premises?q=") {
+		t.Fatalf("builder: %d %s", resp.StatusCode, resp.Header.Get("Content-Type"))
+	}
+}

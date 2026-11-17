@@ -81,6 +81,10 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   `val api` serves `GET /view/premises/{uuid}`: a cytoscape.js graph of the
   premise with its support and challenge evidence coloured by kind (data,
   method, material) and its terms; the library is embedded in the binary.
+  `GET /builder` is the argument builder: search premises, keep them in a
+  toolkit (stored in the browser), mark a claim and its supporting or
+  attacking premises, and get the argument in Argdown
+  (`argdown-conventions.md` §1, §2.2, §4.1–4.2).
   `val api -publish` serves `POST /api/premises/{uuid}/validate` (optional body
   `{"scope": {...}}`), which runs the same evaluation and publication for one
   candidate and answers with the result, the method and, when published, the
