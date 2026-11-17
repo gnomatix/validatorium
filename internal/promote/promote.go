@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"time"
 
-	"gnomatix/validatorium/internal/identity"
 	"gnomatix/validatorium/internal/model"
 	"gnomatix/validatorium/internal/namespace"
 	"gnomatix/validatorium/internal/storage"
@@ -44,19 +43,7 @@ type Result struct {
 	// Namespaced lists the namespaced pointers written, one per requested
 	// namespace, each naming the promoted version.
 	Namespaced []storage.NamespacedPointer
-	// SignatureID is the content identifier of the signature record made
-	// over the promoted version, when the Promoter has a Signer.
-	SignatureID string
 }
-
-// SignatureStore records signature records; the bbolt working store
-// implements it.
-type SignatureStore interface {
-	PutSignature(ctx context.Context, s *model.Signature) (string, error)
-}
-
-// ActionPromote is the action recorded on a promotion signature.
-const ActionPromote = "promote"
 
 // Promoter wires a working store to a global store.
 type Promoter struct {
@@ -64,11 +51,6 @@ type Promoter struct {
 	Global  storage.GlobalStore
 	// Now supplies the promotion time; nil means time.Now.
 	Now func() time.Time
-	// Signer, when set, signs every promoted version with its OpenPGP key,
-	// and the signature record is kept in the working store (which must
-	// then implement SignatureStore). The signature attributes the action;
-	// it adds no evidential weight.
-	Signer *identity.Signer
 }
 
 // Promote admits the candidate with the given UUID to the global store under
@@ -140,25 +122,6 @@ func (p *Promoter) PromoteInto(ctx context.Context, premiseUUID string, att *mod
 		return Result{}, fmt.Errorf("promote %s: %w (result %q, expiresAt %q)", premiseUUID, ErrNotValid, att.Result, att.ExpiresAt)
 	}
 
-	// Sign before writing anything, so a signing failure leaves both tiers
-	// unchanged.
-	var sig *model.Signature
-	var sigStore SignatureStore
-	if p.Signer != nil {
-		var ok bool
-		if sigStore, ok = p.Working.(SignatureStore); !ok {
-			return Result{}, fmt.Errorf("promote %s: a signer needs a working store that records signatures", premiseUUID)
-		}
-		armored, err := p.Signer.SignDetached(data)
-		if err != nil {
-			return Result{}, fmt.Errorf("promote %s: %w", premiseUUID, err)
-		}
-		sig = &model.Signature{SubjectCID: versionCID, Signer: p.Signer.Fingerprint(), Action: ActionPromote, ArmoredSignature: armored, SignedAt: now().UTC().Format(time.RFC3339)}
-		if err := sig.ValidateRecord(); err != nil {
-			return Result{}, fmt.Errorf("promote %s: %w", premiseUUID, err)
-		}
-	}
-
 	// All checks passed. Record locally first so the working store never
 	// points at a version it does not hold.
 	ref, err := p.Working.PutVersion(ctx, cand)
@@ -204,13 +167,6 @@ func (p *Promoter) PromoteInto(ctx context.Context, premiseUUID string, att *mod
 	}
 
 	res := Result{Version: ref, AttestationCID: attCID, Pointer: ptr}
-	if sig != nil {
-		id, err := sigStore.PutSignature(ctx, sig)
-		if err != nil {
-			return res, fmt.Errorf("promote %s: record signature: %w", premiseUUID, err)
-		}
-		res.SignatureID = id
-	}
 	for _, ns := range namespaces {
 		np := storage.NamespacedPointer{UUID: cand.UUID, Namespace: ns, CID: ref.CID, UpdatedAt: ptr.UpdatedAt}
 		if err := p.Global.PutNamespacedPointer(ctx, np); err != nil {

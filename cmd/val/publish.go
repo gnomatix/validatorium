@@ -16,7 +16,6 @@ import (
 	"gnomatix/validatorium/internal/autopublish"
 	"gnomatix/validatorium/internal/bbolt"
 	"gnomatix/validatorium/internal/evaluate"
-	"gnomatix/validatorium/internal/identity"
 	"gnomatix/validatorium/internal/ipfsnode"
 	"gnomatix/validatorium/internal/namespace"
 	"gnomatix/validatorium/internal/orbit"
@@ -37,7 +36,6 @@ func cmdPublish(args []string, out io.Writer) error {
 	sum := fs.String("sha256", "", "expected SHA-256 digest, for the file-digest method")
 	evaluator := fs.String("evaluator", "gemini-cli", "evaluator identity recorded on attestations (attribution only)")
 	nsList := fs.String("ns", "", "comma-separated namespaces to place published versions in")
-	signKey := fs.String("sign-key", "", "armored OpenPGP private key file (not passphrase-protected); signs every published version")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -59,7 +57,7 @@ func cmdPublish(args []string, out io.Writer) error {
 		return errors.New("no candidate drafts to evaluate")
 	}
 
-	pub, closeGlobal, err := newPublisher(ctx, st, *offline, *ipfsRepo, *orbitDir, *pointerDB, *evaluator, *nsList, *signKey)
+	pub, closeGlobal, err := newPublisher(ctx, st, *offline, *ipfsRepo, *orbitDir, *pointerDB, *evaluator, *nsList)
 	if err != nil {
 		return err
 	}
@@ -76,9 +74,6 @@ func cmdPublish(args []string, out io.Writer) error {
 		}
 		if o.Published {
 			fmt.Fprintf(out, "published %s %s attestation %s\n", id, o.Promotion.Version.CID, o.Promotion.AttestationCID)
-			if o.Promotion.SignatureID != "" {
-				fmt.Fprintf(out, "signed %s signature %s\n", id, o.Promotion.SignatureID)
-			}
 		} else {
 			fmt.Fprintf(out, "not-published %s %s (%s)\n", id, o.Attestation.Result, o.Reason)
 		}
@@ -100,17 +95,7 @@ func splitList(s string) []string {
 // newPublisher starts the IPFS node, opens the global store and returns a
 // publisher over it with the built-in evaluators, and a function that
 // closes the store and the node.
-func newPublisher(ctx context.Context, st *bbolt.WorkingStore, offline bool, ipfsRepo, orbitDir, pointerDB, evaluator, nsList, signKey string) (*autopublish.Publisher, func(), error) {
-	var signer *identity.Signer
-	if signKey != "" {
-		b, err := os.ReadFile(signKey)
-		if err != nil {
-			return nil, nil, fmt.Errorf("read signing key: %w", err)
-		}
-		if signer, err = identity.NewSigner(string(b)); err != nil {
-			return nil, nil, err
-		}
-	}
+func newPublisher(ctx context.Context, st *bbolt.WorkingStore, offline bool, ipfsRepo, orbitDir, pointerDB, evaluator, nsList string) (*autopublish.Publisher, func(), error) {
 	var namespaces []namespace.Name
 	for _, n := range splitList(nsList) {
 		name, err := namespace.Parse(n)
@@ -141,7 +126,7 @@ func newPublisher(ctx context.Context, st *bbolt.WorkingStore, offline bool, ipf
 		return nil, nil, err
 	}
 	pub := &autopublish.Publisher{
-		Promoter:   &promote.Promoter{Working: st, Global: gs, Signer: signer},
+		Promoter:   &promote.Promoter{Working: st, Global: gs},
 		Evaluators: reg,
 		Evaluator:  evaluator,
 		Namespaces: namespaces,
