@@ -19,6 +19,7 @@ var (
 	reListMark = regexp.MustCompile(`(?m)^[ \t]*[*#:;]+[ \t]*`)
 	reTableRow = regexp.MustCompile(`(?m)^[ \t]*[|!].*$`)
 	reSpacePun = regexp.MustCompile(`[ \t]+([.,;:!?])`)
+	reEntity   = regexp.MustCompile(`&(?:[a-zA-Z]{2,8}|#[0-9]{2,6}|#x[0-9a-fA-F]{2,5});`)
 	reSpaces   = regexp.MustCompile(`[ \t]+`)
 	reBlank    = regexp.MustCompile(`\n{3,}`)
 	reStopHead = regexp.MustCompile(`(?mi)^==\s*(references|notes|see also|external links|further reading|bibliography|sources|citations)\s*==\s*$`)
@@ -49,6 +50,9 @@ func Strip(s string) string {
 	s = reListMark.ReplaceAllString(s, "")
 	s = reTableRow.ReplaceAllString(s, "") // rows of tables and infoboxes whose opening was not matched
 	s = html.UnescapeString(s)
+	// Wikitext that writes an entity as text ("&amp;ndash;") decodes to the
+	// entity once more; decode those to the character.
+	s = reEntity.ReplaceAllStringFunc(s, html.UnescapeString)
 	s = reSpaces.ReplaceAllString(s, " ")
 	s = reSpacePun.ReplaceAllString(s, "$1") // space left where a template was removed
 	lines := strings.Split(s, "\n")

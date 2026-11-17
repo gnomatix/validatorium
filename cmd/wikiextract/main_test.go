@@ -133,3 +133,9 @@ func TestStripRendersInlineTemplates(t *testing.T) {
 		}
 	}
 }
+
+func TestStripDecodesDoubleEncodedEntities(t *testing.T) {
+	if got := Strip("From 1990&amp;ndash;2000 &amp; after."); got != "From 1990–2000 & after." {
+		t.Fatalf("got %q", got)
+	}
+}
