@@ -53,6 +53,11 @@ type Micropublication struct {
 
 	// State — project layer (not MP). Lifecycle/versioning.
 	State Lifecycle `json:"state"`
+
+	// Temporal is the premise's time scope (data-model.md §8); nil means none
+	// stated. Omitted from the encoding when nil, so existing versions keep
+	// their content identifiers.
+	Temporal *TemporalPolicy `json:"temporalPolicy,omitempty"`
 }
 
 // Statement is MP:Statement, "a declarative Sentence" that is "truth-bearing."
@@ -170,6 +175,9 @@ func (m *Micropublication) ValidateRecord() error {
 	}
 	if m.State.Status != Current && m.State.Status != Obsolete {
 		return fmt.Errorf("micropublication %s: invalid lifecycle status %q", m.UUID, m.State.Status)
+	}
+	if err := m.Temporal.Validate(); err != nil {
+		return fmt.Errorf("micropublication %s: %w", m.UUID, err)
 	}
 	for _, e := range m.SupportGraph {
 		if err := e.validate(); err != nil {
