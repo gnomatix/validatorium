@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
-// Interval is a half-open time interval [Start, End), RFC 3339 timestamps.
-// An empty Start is unbounded in the past; an empty End is open-ended.
+// Interval is a half-open time interval [Start, End). An empty Start means
+// unbounded in the past; an empty End means still open (e.g. "as of" a date
+// with no end yet).
 type Interval struct {
 	Start string `json:"start,omitempty"`
 	End   string `json:"end,omitempty"`
@@ -16,7 +17,9 @@ type Interval struct {
 // TemporalPolicy is the premise's time scope (docs/specs/data-model.md §8).
 // Temporal inactivity or expiry does not make a premise obsolete.
 type TemporalPolicy struct {
-	// ValidTime is the interval over which the premise holds.
+	// ValidTime is the interval over which the premise holds, e.g. "as of
+	// the date Jeff said it" (Start only) or "the formulation they used to
+	// make" (Start and End).
 	ValidTime *Interval `json:"validTime,omitempty"`
 	// ExpiresAt is when the premise stops being current without re-check.
 	ExpiresAt string `json:"expiresAt,omitempty"`
