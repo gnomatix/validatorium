@@ -16,7 +16,7 @@ var (
 	reBareExt  = regexp.MustCompile(`\[(?:https?:)?//[^\]]+\]`)
 	reHeading  = regexp.MustCompile(`(?m)^=+\s*(.*?)\s*=+\s*$`)
 	reBoldItal = regexp.MustCompile(`'{2,5}`)
-	reListMark = regexp.MustCompile(`(?m)^[*#:;]+\s*`)
+	reListMark = regexp.MustCompile(`(?m)^[ \t]*[*#:;]+[ \t]*`)
 	reTableRow = regexp.MustCompile(`(?m)^[ \t]*[|!].*$`)
 	reSpaces   = regexp.MustCompile(`[ \t]+`)
 	reBlank    = regexp.MustCompile(`\n{3,}`)
