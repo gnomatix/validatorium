@@ -78,6 +78,9 @@ tracked in Beads; use `bd ready` and `bd list --type decision` for current recor
   With `-sign-key` (an armored OpenPGP private key file), every published
   version is signed and the signature record kept in the working store, so
   every version a key published can be listed (`SignaturesBySigner`).
+  `val api` serves `GET /view/premises/{uuid}`: a cytoscape.js graph of the
+  premise with its support and challenge evidence coloured by kind (data,
+  method, material) and its terms; the library is embedded in the binary.
   `val api -publish` serves `POST /api/premises/{uuid}/validate` (optional body
   `{"scope": {...}}`), which runs the same evaluation and publication for one
   candidate and answers with the result, the method and, when published, the

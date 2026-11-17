@@ -71,6 +71,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	path := strings.TrimSuffix(r.URL.Path, "/")
 	switch {
+	case strings.HasPrefix(path, "/view/premises/") && r.Method == http.MethodGet:
+		s.viewPremise(w, r, strings.TrimPrefix(path, "/view/premises/"))
+	case path == "/static/cytoscape.min.js" && r.Method == http.MethodGet:
+		serveCytoscape(w, r)
 	case path == "/api/verification" && r.Method == http.MethodGet:
 		s.verification(w, r)
 	case path == "/api/certifications" && r.Method == http.MethodPost:
