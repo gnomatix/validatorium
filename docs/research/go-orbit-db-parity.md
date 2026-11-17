@@ -24,7 +24,7 @@ Supersedes the leads in `UNVERIFIED-go-orbit-db-parity.md`.
 ## JavaScript versions
 
 Read from the release tags of `orbitdb/orbitdb` on 2026-11-17: v2.0.0 has the
-five databases above (events, documents, keyvalue, keyvalue-indexed) and no
+four databases above (events, documents, keyvalue, keyvalue-indexed) and no
 encryption (no `docs/ENCRYPTION.md`, no `encrypt` in `src/`); v3.0.0 adds the
 encryption module (the document present, 10 files in `src/` mention it); v4.0.0
 as in the matrix. So payload and replication encryption arrived in JavaScript
