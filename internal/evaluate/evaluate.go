@@ -77,10 +77,6 @@ func (r *Registry) Methods() []string {
 // one no registered evaluator implements.
 var ErrNoMethod = errors.New("evaluate: no registered evaluator for the premise's method")
 
-// ErrBadScope is wrapped by an evaluator when the scope it was given is
-// missing a value it needs or holds one in the wrong form.
-var ErrBadScope = errors.New("evaluate: scope is missing or malformed")
-
 // Attest evaluates the premise with the evaluator registered for the method
 // its support graph names first, and returns a well-formed attestation for
 // its exact current version. The evaluator identity is recorded for

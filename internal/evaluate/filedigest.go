@@ -40,10 +40,10 @@ func (f FileDigest) Evaluate(ctx context.Context, premise *model.Micropublicatio
 	want, _ := scope["sha256"].(string)
 	want = strings.ToLower(strings.TrimSpace(want))
 	if len(want) != 64 {
-		return Outcome{}, fmt.Errorf("file-sha256: scope must give \"sha256\" as 64 hex characters: %w", ErrBadScope)
+		return Outcome{}, errors.New("file-sha256: scope must give \"sha256\" as 64 hex characters")
 	}
 	if _, err := hex.DecodeString(want); err != nil {
-		return Outcome{}, fmt.Errorf("file-sha256: scope sha256 is not hex (%v): %w", err, ErrBadScope)
+		return Outcome{}, fmt.Errorf("file-sha256: scope sha256 is not hex: %w", err)
 	}
 	path := ""
 	for _, e := range premise.SupportGraph {
