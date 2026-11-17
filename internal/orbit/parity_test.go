@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"berty.tech/go-ipfs-log/enc"
+	"berty.tech/go-ipfs-log/entry"
+	"berty.tech/go-ipfs-log/io/cbor"
 	orbitdb "berty.tech/go-orbit-db"
 	"berty.tech/go-orbit-db/accesscontroller"
 	"berty.tech/go-orbit-db/iface"
@@ -131,3 +134,51 @@ func TestParityWriteAccessRefusesOtherIdentity(t *testing.T) {
 		t.Fatal("put by an identity outside the write list succeeded")
 	}
 }
+
+// TestParityLinkEncryptionLeavesPayloadReadable opens an event log whose
+// entries encrypt their links (go-ipfs-log cbor.Options.LinkKey, NaCl
+// secretbox) and checks what that protects: the log still works for the
+// key holder, and the entry block still carries the payload readable.
+func TestParityLinkEncryptionLeavesPayloadReadable(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	odb, dir := newODB(ctx, t)
+	key, err := enc.NewSecretbox(bytes.Repeat([]byte{7}, enc.SecretBoxKeySize))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := cbor.IO(&entry.Entry{}, &entry.LamportClock{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	lg, err := odb.Log(ctx, "parity-linkkey", &orbitdb.CreateDBOptions{Directory: &dir, IO: base.ApplyOptions(&cbor.Options{LinkKey: key})})
+	if err != nil {
+		t.Fatalf("open eventlog with link key: %v", err)
+	}
+	marker := []byte("validatorium-linkkey-marker-51c2")
+	if _, err := lg.Add(ctx, []byte("first")); err != nil {
+		t.Fatal(err)
+	}
+	op, err := lg.Add(ctx, marker)
+	if err != nil {
+		t.Fatalf("add: %v", err)
+	}
+	ops, err := lg.List(ctx, &iface.StreamOptions{Amount: intPtr(-1)})
+	if err != nil || len(ops) != 2 {
+		t.Fatalf("list = %d ops, %v", len(ops), err)
+	}
+	blk, err := odb.IPFS().Block().Get(ctx, path.FromCid(op.GetEntry().GetHash()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw := new(bytes.Buffer)
+	_, _ = raw.ReadFrom(blk)
+	if !bytes.Contains(raw.Bytes(), []byte(base64.StdEncoding.EncodeToString(marker))) {
+		t.Fatalf("payload not readable in the entry block (%d bytes)", raw.Len())
+	}
+	if !bytes.Contains(raw.Bytes(), []byte("enc_links")) {
+		t.Fatal("entry block has no encrypted links field")
+	}
+}
+
+func intPtr(i int) *int { return &i }

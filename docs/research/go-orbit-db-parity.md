@@ -19,7 +19,7 @@ Supersedes the leads in `UNVERIFIED-go-orbit-db-parity.md`.
 | Write list enforced on local writes | yes (access controller) | yes | test `TestParityWriteAccessRefusesOtherIdentity` |
 | Identities | `src/identities/`, provider `publickey` | `go-ipfs-log/identityprovider`, provider `orbitdb` (secp256k1) | test `TestParityIdentitySignVerify` |
 | Payload encryption | modular, `encryption: { data }` | absent | no encryption option in `CreateDBOptions`; test shows the entry block carries the value base64-encoded, readable by any peer holding the block |
-| Log-entry (replication) encryption | modular, `encryption: { replication }` | partial: `go-ipfs-log` can encrypt entry links (`cbor.Options.LinkKey`, NaCl secretbox) through `CreateDBOptions.IO`; payload stays readable | read in `vendor/berty.tech/go-ipfs-log/io/cbor/cbor.go`; not tested |
+| Log-entry (replication) encryption | modular, `encryption: { replication }` | partial: `go-ipfs-log` can encrypt entry links (`cbor.Options.LinkKey`, NaCl secretbox) through `CreateDBOptions.IO`; payload stays readable | test `TestParityLinkEncryptionLeavesPayloadReadable`: an event log opened with a link key works, its entry blocks carry `enc_links`, and the payload is readable |
 
 ## Findings for the namespace and signing work
 
@@ -41,6 +41,6 @@ Supersedes the leads in `UNVERIFIED-go-orbit-db-parity.md`.
 
 ## Not checked
 
-JavaScript OrbitDB 2.x and 3.x; link encryption in practice; access-control
+JavaScript OrbitDB 2.x and 3.x; access-control
 enforcement on replication; interoperability between the Go and JavaScript
 implementations.
