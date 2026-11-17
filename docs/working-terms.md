@@ -1,5 +1,10 @@
 # Working terms
 
+> **Status (2026-11-17).** Agent-written, without the owner's approval. The
+> "Meaning here" column is the agent's paraphrase; entries sourced to the
+> owner are not quotations. Where a definition differs from the owner's
+> words, the owner's words govern. Not specification.
+
 Terms established in working sessions on Validatorium, with the meaning they
 carry in this project. This is a glossary for people and agents working on the
 project, not specification: where a term also appears in `docs/specs/`, the

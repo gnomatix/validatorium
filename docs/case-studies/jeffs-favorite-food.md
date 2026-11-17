@@ -1,5 +1,14 @@
 # Case study: Jeff's favorite food
 
+> **Status (2026-11-17).** Agent-written; not specification and not a model
+> for code. Known defects: the root premise below ("there is a person named
+> Jeff") was superseded in the walkthrough at step 0 (the speaker identifies
+> as himself; `validatorium-845`). The section "In Argdown" uses fields not
+> defined in `docs/specs/` although it says it follows
+> `argdown-conventions.md`. The section "Who is Jeff?" gives design answers
+> that no specification states. The walkthrough is open; no rewrite is made
+> while it is open.
+
 How one casual sentence decomposes into atomic premises. "Jeff" is a
 hypothetical speaker.
 
