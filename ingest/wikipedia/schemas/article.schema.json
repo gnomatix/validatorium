@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:validatorium:ingest:wikipedia:article:1",
+  "title": "wikiextract article record, version 1",
+  "description": "One line of wikiextract output (cmd/wikiextract, type article).",
+  "type": "object",
+  "required": ["wiki", "page_id", "title", "rev_id", "text"],
+  "additionalProperties": false,
+  "properties": {
+    "wiki": {"type": "string", "description": "wiki identifier given with -wiki"},
+    "page_id": {"type": "integer"},
+    "title": {"type": "string"},
+    "rev_id": {"type": "integer", "description": "revision the text was taken from"},
+    "text": {"type": "string", "description": "article text with markup removed; citations appear as [ref:N]"},
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["n", "raw"],
+        "additionalProperties": false,
+        "properties": {
+          "n": {"type": "integer"},
+          "url": {"type": "string"},
+          "doi": {"type": "string"},
+          "pmid": {"type": "string"},
+          "isbn": {"type": "string"},
+          "title": {"type": "string"},
+          "raw": {"type": "string"}
+        }
+      }
+    },
+    "sentences": {
+      "type": "array",
+      "description": "present with -sentences",
+      "items": {
+        "type": "object",
+        "required": ["start", "end", "text"],
+        "additionalProperties": false,
+        "properties": {
+          "start": {"type": "integer", "description": "byte offset into text"},
+          "end": {"type": "integer", "description": "byte offset into text, exclusive"},
+          "text": {"type": "string"},
+          "refs": {"type": "array", "items": {"type": "integer"}}
+        }
+      }
+    }
+  }
+}
