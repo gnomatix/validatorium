@@ -104,3 +104,10 @@ func TestStripDropsUnmatchedTableRows(t *testing.T) {
 		t.Fatalf("prose lost: %q", got)
 	}
 }
+
+func TestStripKeepsMathSource(t *testing.T) {
+	got := Strip("His most famous equation is <math>E = mc^2</math> in which E is energy.")
+	if got != "His most famous equation is E = mc^2 in which E is energy." {
+		t.Fatalf("got %q", got)
+	}
+}
