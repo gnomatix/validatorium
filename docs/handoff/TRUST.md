@@ -27,6 +27,7 @@ packages ok).
 |---|---|---|
 | Wikipedia extractor | `cmd/wikiextract` | Run on simplewiki-20261101 (214,908 articles; 150 s serial, 58 s with `-index -workers 4`, outputs byte-identical); not on enwiki; output read for one article only. Markup stripping is regular expressions (`strip.go`), a heuristic. Single-threaded. |
 | Import of worker output | `cmd/val/import.go` | Never run on model output. |
+| Sentence spans (`wikiextract -sentences`) | `cmd/wikiextract/sentences.go` | Run on simplewiki-20261101: 3,917,627 sentences, 602,984 with citations; byte spans checked non-empty on 1,233,975 of them; about 20 read by eye. Rules only (no clause splitting). |
 | Dump fetch and verify | `ingest/wikipedia/fetch-dump.sh` | Run on simplewiki 20261101 (both files verified; tampered file fails with status 1); not on enwiki. |
 | Worker command | `ingest/wikipedia/worker-local.sh` | Tested against a mock server only; never against a model. |
 | Grid Engine template | `ingest/wikipedia/sge-array.sh` | Run locally with `SGE_TASK_ID` set (13 chunks, mock model, all output imported); never submitted to a scheduler. |

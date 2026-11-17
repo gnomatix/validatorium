@@ -39,6 +39,9 @@ type page struct {
 // titles, when not nil, limits extraction to these article titles.
 var titles map[string]bool
 
+// withSentences adds rule-based sentence spans to each article (-sentences).
+var withSentences bool
+
 type article struct {
 	Wiki   string `json:"wiki"`
 	PageID int64  `json:"page_id"`
@@ -46,6 +49,9 @@ type article struct {
 	RevID  int64  `json:"rev_id"`
 	Text   string `json:"text"`
 	Refs   []Ref  `json:"refs,omitempty"`
+	// Sentences is set with -sentences: rule-based sentence spans with the
+	// citations bound to each (see sentences.go).
+	Sentences []Sentence `json:"sentences,omitempty"`
 }
 
 func main() {
@@ -55,6 +61,7 @@ func main() {
 	minLen := flag.Int("min-chars", 200, "skip articles whose stripped text is shorter than this")
 	titlesFile := flag.String("titles", "", "file of article titles, one per line; only these are extracted")
 	index := flag.String("index", "", "multistream index (.txt or .txt.bz2) for -in; with it the bz2 streams are decoded in parallel")
+	flag.BoolVar(&withSentences, "sentences", false, "add rule-based sentence spans, with the citations bound to each, to every article")
 	workers := flag.Int("workers", runtime.NumCPU(), "parallel stream decoders when -index is given")
 	flag.Parse()
 	if *titlesFile != "" {
@@ -152,5 +159,9 @@ func convert(p *page, wiki string, minLen int) *article {
 	if len(text) < minLen {
 		return nil
 	}
-	return &article{Wiki: wiki, PageID: p.ID, Title: p.Title, RevID: p.Revision.ID, Text: text, Refs: refs}
+	a := &article{Wiki: wiki, PageID: p.ID, Title: p.Title, RevID: p.Revision.ID, Text: text, Refs: refs}
+	if withSentences {
+		a.Sentences = Sentences(text)
+	}
+	return a
 }

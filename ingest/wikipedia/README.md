@@ -25,6 +25,9 @@ the exact article revision it came from, as a pointer to the source.
    ./wikiextract -in enwiki-latest-pages-articles-multistream.xml.bz2 -titles elements.txt > elements.jsonl
    ```
 
+   Add `-sentences` to include rule-based sentence spans (`start`, `end` byte
+   offsets into `text`, `text` without markers, `refs` bound to the sentence).
+
    One JSON object per article: `wiki`, `page_id`, `title`, `rev_id`, plain
    `text`, and `refs`. Citations are kept: each `<ref>` becomes a `[ref:N]`
    marker in the text and an entry in `refs` with its URL, DOI, PMID, ISBN
