@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -109,14 +110,51 @@ func (r *ImportRecord) check() error {
 
 // ImportStats counts what one import did.
 type ImportStats struct {
-	Created, Existing, Conclusions, Rejected int
+	Created, Existing, Conclusions, Rejected, QuoteMismatch int
 }
 
 // importJSONL loads worker output into the working store as candidate
 // premises. Conclusions are counted and not stored as premises
 // (docs/specs/premise-decomposition.md §3.3). Malformed lines are rejected
 // and reported; they do not stop the import.
-func importJSONL(ctx context.Context, st *bbolt.WorkingStore, in io.Reader, agent string, at time.Time, rejects io.Writer) (ImportStats, error) {
+// articleKey identifies one source revision.
+func articleKey(wiki string, rev int64) string { return fmt.Sprintf("%s|%d", wiki, rev) }
+
+var (
+	refMarker  = regexp.MustCompile(`\s*\[ref:\d+\]`)
+	whitespace = regexp.MustCompile(`\s+`)
+)
+
+// normalizeForQuote removes citation markers and collapses whitespace, so a
+// verbatim quote matches the article text it was copied from.
+func normalizeForQuote(s string) string {
+	return strings.TrimSpace(whitespace.ReplaceAllString(refMarker.ReplaceAllString(s, ""), " "))
+}
+
+// loadArticles reads wikiextract output and returns each revision's
+// normalized text keyed by wiki and revision id.
+func loadArticles(in io.Reader) (map[string]string, error) {
+	out := map[string]string{}
+	sc := bufio.NewScanner(in)
+	sc.Buffer(make([]byte, 0, 1<<20), 64<<20)
+	for sc.Scan() {
+		var a struct {
+			Wiki  string `json:"wiki"`
+			RevID int64  `json:"rev_id"`
+			Text  string `json:"text"`
+		}
+		if err := json.Unmarshal(sc.Bytes(), &a); err != nil {
+			return nil, err
+		}
+		out[articleKey(a.Wiki, a.RevID)] = normalizeForQuote(a.Text)
+	}
+	return out, sc.Err()
+}
+
+// importJSONL loads worker output. When articles is not nil, each premise's
+// quote must occur verbatim in its source article (citation markers and
+// whitespace aside), or the line is rejected.
+func importJSONL(ctx context.Context, st *bbolt.WorkingStore, in io.Reader, agent string, at time.Time, rejects io.Writer, articles map[string]string) (ImportStats, error) {
 	var stats ImportStats
 	sc := bufio.NewScanner(in)
 	sc.Buffer(make([]byte, 0, 1<<20), 16<<20)
@@ -190,6 +228,21 @@ func importJSONL(ctx context.Context, st *bbolt.WorkingStore, in io.Reader, agen
 			stats.Rejected++
 			continue
 		}
+		if articles != nil && r.Kind == "premise" {
+			text, ok := articles[articleKey(r.Source.Wiki, r.Source.RevID)]
+			q := normalizeForQuote(r.Quote)
+			switch {
+			case !ok:
+				fmt.Fprintf(rejects, "line %d: source revision %s/%d not in -articles\n", line, r.Source.Wiki, r.Source.RevID)
+				stats.Rejected++
+				continue
+			case q == "" || !strings.Contains(text, q):
+				fmt.Fprintf(rejects, "line %d: quote not found verbatim in %s/%d: %q\n", line, r.Source.Wiki, r.Source.RevID, r.Quote)
+				stats.Rejected++
+				stats.QuoteMismatch++
+				continue
+			}
+		}
 		if len(batch) > 0 && (batch[0].Source.Wiki != r.Source.Wiki || batch[0].Source.RevID != r.Source.RevID) {
 			if err := flush(); err != nil {
 				return stats, err
@@ -211,6 +264,7 @@ func cmdImport(args []string, out io.Writer) error {
 	ws := openWS(fs)
 	file := fs.String("file", "", "JSONL file of worker output; '-' reads standard input (required)")
 	agent := fs.String("agent", "", "agent recorded on each candidate, e.g. the worker identity (required)")
+	articlesFile := fs.String("articles", "", "wikiextract output; when given, every quote must occur verbatim in its source article")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -231,7 +285,19 @@ func cmdImport(args []string, out io.Writer) error {
 		return err
 	}
 	defer st.Close()
-	stats, err := importJSONL(context.Background(), st, in, *agent, time.Now(), os.Stderr)
-	fmt.Fprintf(out, "created %d, already present %d, conclusions skipped %d, rejected %d\n", stats.Created, stats.Existing, stats.Conclusions, stats.Rejected)
+	var articles map[string]string
+	if *articlesFile != "" {
+		af, err := os.Open(*articlesFile)
+		if err != nil {
+			return err
+		}
+		articles, err = loadArticles(af)
+		af.Close()
+		if err != nil {
+			return fmt.Errorf("import: -articles: %w", err)
+		}
+	}
+	stats, err := importJSONL(context.Background(), st, in, *agent, time.Now(), os.Stderr, articles)
+	fmt.Fprintf(out, "created %d, already present %d, conclusions skipped %d, rejected %d (quote not verbatim: %d)\n", stats.Created, stats.Existing, stats.Conclusions, stats.Rejected, stats.QuoteMismatch)
 	return err
 }

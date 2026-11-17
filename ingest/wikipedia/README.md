@@ -32,7 +32,7 @@ the exact article revision it came from, as a pointer to the source.
 5. **Load** into a working store:
 
    ```sh
-   cat out/*.jsonl | val import -working-store wiki.db -file - -agent "worker:<model>@<date>"
+   cat out/*.jsonl | val import -working-store wiki.db -file - -agent "worker:<model>@<date>" -articles articles.jsonl
    ```
 
    It prints how many premises were created, already present, skipped as
@@ -50,7 +50,7 @@ Run steps 4–5 on a small sample first (a few hundred articles), read the
 output, tighten `WORKER_PROMPT.md`, and repeat before the full run. Checks
 worth automating between iterations:
 
-- every `quote` occurs verbatim in the article text;
+- every `quote` occurs verbatim in the article text (done by `val import -articles`: lines whose quote is not found are rejected and counted);
 - no statement contains a pronoun whose referent is outside the statement;
 - no statement contains "and" joining two independent assertions;
 - every `ontology_uri` that is not empty resolves to a Wikidata entity whose
