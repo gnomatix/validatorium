@@ -16,6 +16,7 @@ Each figure names where it came from.
 | Download of 27.0 GB at 50 MB/s | about 9 minutes | arithmetic |
 | Extractor rate, one thread | about 1,440 articles per second; about 2.6 MB of compressed input per second | measured 2026-11-17 on simplewiki-20261101 in a cloud container (`validatorium-x3g.14`) |
 | Extraction of 27.0 GB at that rate | about 2.9 hours on one thread | arithmetic from the row above; the machine differs |
+| Extractor with `-templates` (template expansion) | about 120 articles/s with 4 workers, about 30 times slower; leave it off for the run | measured 2026-11-17 on simplewiki, partial run (`validatorium-x3g.8`) |
 | Extractor with `-index`, 4 workers | 58 s for the same dump (150 s serial); output byte-identical | measured 2026-11-17, same container (`validatorium-x3g.11`) |
 | Full decomposition in 2 hours needs | N articles / 7,200 seconds | N from stage 2 |
 
