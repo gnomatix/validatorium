@@ -32,6 +32,7 @@ fences). Each object:
  "scope": {"time": "1879-03-14"},
  "quote": "Albert Einstein (14 March 1879 – 18 April 1955)",
  "depends_on": [],
+ "supported_by": [],
  "citations": [{"url": "…", "doi": "…", "pmid": "…", "isbn": "…", "title": "…"}]}
 ```
 
@@ -45,7 +46,8 @@ Copy `source` from the input; `url` is always
 
 1. **One assertion per premise.** A premise states one independently
    checkable fact. Split "X and Y" into two premises. Split "X because Y" into
-   X, Y, and the causal link as its own premise.
+   two premises, X and Y; the link is not a premise: put Y's `local_id` in
+   X's `supported_by` (Y supports X).
 2. **Premise or conclusion.** If a statement can be derived from other
    statements in the article, it is a **conclusion**: output it with
    `"kind": "conclusion"` and list what it derives from in `depends_on`.
@@ -77,8 +79,10 @@ Copy `source` from the input; `url` is always
    meant. Never guess an identifier.
 8. **Overloaded wording.** If a sentence means two things at once and both
    are stated, output both as separate premises.
-9. **Dependencies.** If a premise only makes sense given another premise
-   from the same article, list that premise's `local_id` in `depends_on`.
+9. **Dependencies and support.** If a premise only makes sense given another
+   premise from the same article, list that premise's `local_id` in
+   `depends_on`. If the article gives another premise as the reason for this
+   one, list that premise's `local_id` in `supported_by`. Otherwise use `[]`.
 10. **Local ids.** Number premises `p1`, `p2`, … and conclusions `c1`,
     `c2`, … in the order they appear in the article.
 11. **Skip** navigation text, reference lists, "See also", infobox layout,

@@ -73,6 +73,7 @@ worth automating between iterations:
 | `terms` | the statement's term groundings |
 | `source.url`, `quote` | support-graph entry (kind `data`) pointing at the revision, with the quote as its note |
 | `citations` | support-graph entries pointing at each cited source (DOI, then PMID, then URL, then ISBN) |
-| `depends_on` | support-graph entries `urn:validatorium:premise:<uuid>` |
+| `supported_by` | support-graph entries `urn:validatorium:premise:<uuid>` (the SUPPORTS relation, `premise-decomposition.md` §3.2) |
+| `depends_on` | kept in the JSONL only (a contextual dependency is not evidence, `data-model.md` §5) |
 | `kind: conclusion` | not stored as a premise (counted only) |
 | `scope` | kept in the JSONL only; the statement text carries the scope |

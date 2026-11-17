@@ -39,8 +39,6 @@ packages ok).
 |---|---|---|
 | Worker output `scope` object with free keys (`time`, `place`, ...) | `WORKER_PROMPT.md`, `cmd/val/import.go` (`ImportRecord.Scope`) | Invented free-form structure; not defined by the specification; not stored by import. |
 | Worker output allows empty `ontology_uri` | `WORKER_PROMPT.md` rule 7 | The specification requires grounding; the prompt lets a term through with only a free-text `sense`. |
-| `val import` records premise dependencies as evidence | `cmd/val/import.go` lines 198-201 | `data-model.md` §5 defines evidence as supports or challenges; dependencies appear only on attestations (§6). Bug `validatorium-x3g.19`. |
-| Worker rule 1 on "X because Y" | `ingest/wikipedia/WORKER_PROMPT.md` | Makes the causal link a premise; `premise-decomposition.md` §3.2 makes it a SUPPORTS relation. Bug `validatorium-x3g.20`. |
 | Case study field names (`evidence_type: "self_report"`, `scope: {as_of}`) | `docs/case-studies/jeffs-favorite-food.md` | Invented labels where evidence and time ontologies exist. Not a model for any implementation. |
 | Glossary | `docs/working-terms.md` | Contains category names coined in conversation. Not specification. |
 | Reference list | `resources/references.md` | Some entries are marked unverified. |

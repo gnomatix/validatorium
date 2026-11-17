@@ -70,8 +70,15 @@ type ImportRecord struct {
 	Terms     []ImportTerm           `json:"terms"`
 	Scope     map[string]interface{} `json:"scope"`
 	Quote     string                 `json:"quote"`
-	DependsOn []string               `json:"depends_on"`
-	Citations []ImportCitation       `json:"citations"`
+	// DependsOn lists local ids this premise needs for context. It is kept
+	// in the worker output only: a contextual dependency is not evidence
+	// (data-model.md §5 defines evidence relations as supports | challenges).
+	DependsOn []string `json:"depends_on"`
+	// SupportedBy lists local ids of premises that support this one, the
+	// relation premise-decomposition.md §3.2 gives for "X because Y" (Y
+	// SUPPORTS X). Each becomes a support-graph entry naming that premise.
+	SupportedBy []string         `json:"supported_by"`
+	Citations   []ImportCitation `json:"citations"`
 }
 
 // premiseRefPrefix marks a support-graph entry that names another premise.
@@ -195,9 +202,9 @@ func importJSONL(ctx context.Context, st *bbolt.WorkingStore, in io.Reader, agen
 					m.SupportGraph = append(m.SupportGraph, model.Evidence{Kind: model.EvidenceData, Reference: ref, Note: "cited by the source article: " + c.Title})
 				}
 			}
-			for _, dep := range r.DependsOn {
-				if did, ok := ids[dep]; ok {
-					m.SupportGraph = append(m.SupportGraph, model.Evidence{Kind: model.EvidenceData, Reference: premiseRefPrefix + did, Note: "depends on premise " + dep})
+			for _, sup := range r.SupportedBy {
+				if sid, ok := ids[sup]; ok {
+					m.SupportGraph = append(m.SupportGraph, model.Evidence{Kind: model.EvidenceData, Reference: premiseRefPrefix + sid, Note: "supported by premise " + sup})
 				}
 			}
 			if err := st.PutCandidate(ctx, m); err != nil {
