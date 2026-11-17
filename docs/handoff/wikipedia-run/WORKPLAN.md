@@ -34,7 +34,7 @@ published until an evaluator for these premises exists
 | # | Stage | Beads | Command or action | Done when |
 |---|---|---|---|---|
 | 0 | Build | none (no code change) | `go build -mod=vendor -o val ./cmd/val && go build -mod=vendor -o wikiextract ./cmd/wikiextract` | both binaries run `-h` |
-| 1 | Get the dump and verify it | `validatorium-x3g.12` | download dump and index (torrent or HTTPS); compare with the published `sha1sums`/`md5sums` file | checksum matches; dump date recorded in the task |
+| 1 | Get the dump and verify it | `validatorium-x3g.12` | `ingest/wikipedia/fetch-dump.sh enwiki latest DIR` downloads dump and index and verifies them; after a torrent download, put the files in DIR and run it with `VERIFY_ONLY=1` | exit status 0; `DIR/manifest.json` records dump date, sizes, SHA-1 and SHA-256 |
 | 2 | Extract | `validatorium-x3g.14` | `./wikiextract -in DUMP -max 500 > sample.jsonl`; read 20 by eye; then `./wikiextract -in DUMP -index INDEX -workers 24 > articles.jsonl` | counts and wall time recorded; defects filed |
 | 2a | Title list | `validatorium-x3g.1` | list of chemical-element article titles from Wikidata; `./wikiextract -in DUMP -titles elements.txt > elements.jsonl` | about 118 articles extracted |
 | 3 | Worker command | `validatorium-x3g.15` | start a local model server; `export WORKER_CMD=ingest/wikipedia/worker-local.sh WORKER_URL=... WORKER_MODEL=...` | one article in, valid JSON Lines out |

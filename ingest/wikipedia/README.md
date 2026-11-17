@@ -9,7 +9,9 @@ the exact article revision it came from, as a pointer to the source.
 
 1. **Dump.** `enwiki-latest-pages-articles-multistream.xml.bz2` and its index
    from <https://dumps.wikimedia.org/enwiki/latest/>, checked against the
-   published checksums.
+   published checksums: `ingest/wikipedia/fetch-dump.sh enwiki latest DIR`
+   (`VERIFY_ONLY=1` checks files already downloaded, e.g. by torrent, and
+   writes `DIR/manifest.json`).
 2. **Extract articles** with `wikiextract` (in this repository,
    `cmd/wikiextract`):
 
