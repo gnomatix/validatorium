@@ -25,7 +25,7 @@ packages ok).
 
 | Component | Path | What is missing |
 |---|---|---|
-| Wikipedia extractor | `cmd/wikiextract` | Run on simplewiki-20261101 (214,908 articles; 150 s serial, 58 s with `-index -workers 4`, outputs byte-identical); not on enwiki; output read for one article only. Markup stripping is regular expressions (`strip.go`), a heuristic. Single-threaded. |
+| Wikipedia extractor | `cmd/wikiextract` | Run on simplewiki-20261101 (215,035 articles after the 2026-11-17 template and formula fixes, 214,908 before; 150 s serial, 58 s with `-index -workers 4`, outputs byte-identical); not on enwiki; output read for one article only. Markup stripping is regular expressions (`strip.go`), a heuristic. Single-threaded. |
 | Import of worker output | `cmd/val/import.go` | Never run on model output. |
 | Sentence spans (`wikiextract -sentences`) | `cmd/wikiextract/sentences.go` | Run on simplewiki-20261101: 3,917,627 sentences, 602,984 with citations; byte spans checked non-empty on 1,233,975 of them; about 20 read by eye. Rules only (no clause splitting). |
 | Dump fetch and verify | `ingest/wikipedia/fetch-dump.sh` | Run on simplewiki 20261101 (both files verified; tampered file fails with status 1); not on enwiki. |

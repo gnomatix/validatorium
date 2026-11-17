@@ -18,6 +18,7 @@ var (
 	reBoldItal = regexp.MustCompile(`'{2,5}`)
 	reListMark = regexp.MustCompile(`(?m)^[ \t]*[*#:;]+[ \t]*`)
 	reTableRow = regexp.MustCompile(`(?m)^[ \t]*[|!].*$`)
+	reSpacePun = regexp.MustCompile(`[ \t]+([.,;:!?])`)
 	reSpaces   = regexp.MustCompile(`[ \t]+`)
 	reBlank    = regexp.MustCompile(`\n{3,}`)
 	reStopHead = regexp.MustCompile(`(?mi)^==\s*(references|notes|see also|external links|further reading|bibliography|sources|citations)\s*==\s*$`)
@@ -36,6 +37,7 @@ func Strip(s string) string {
 	s = reDropTags.ReplaceAllString(s, "")
 	s = reSwitch.ReplaceAllString(s, "") // behaviour switches such as __NOTOC__
 	s = reMath.ReplaceAllString(s, "$1") // keep the formula source so the sentence stays whole
+	s = renderInline(s)
 	s = removeNested(s, "{{", "}}")
 	s = removeNested(s, "{|", "|}")
 	s = links(s)
@@ -48,6 +50,7 @@ func Strip(s string) string {
 	s = reTableRow.ReplaceAllString(s, "") // rows of tables and infoboxes whose opening was not matched
 	s = html.UnescapeString(s)
 	s = reSpaces.ReplaceAllString(s, " ")
+	s = reSpacePun.ReplaceAllString(s, "$1") // space left where a template was removed
 	lines := strings.Split(s, "\n")
 	for i := range lines {
 		lines[i] = strings.TrimSpace(lines[i])

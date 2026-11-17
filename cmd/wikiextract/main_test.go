@@ -117,3 +117,19 @@ func TestStripRemovesBehaviourSwitches(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestStripRendersInlineTemplates(t *testing.T) {
+	cases := map[string]string{
+		"It is {{convert|8849|m|ft}} high.":                  "It is 8849 m high.",
+		"Between {{convert|10|-|20|C}} at night.":            "Between 10–20 °C at night.",
+		"From {{convert|5|to|7|km|abbr=on}} away.":           "From 5 to 7 km away.",
+		"The word {{lang|fr|bonjour}} means hello.":          "The word bonjour means hello.",
+		"She met {{ill|Jean Dupont|fr}} in Paris.":           "She met Jean Dupont in Paris.",
+		"A {{small|very}} small {{nowrap|thing}} {{other}}.": "A very small thing.",
+	}
+	for in, want := range cases {
+		if got := Strip(in); got != want {
+			t.Errorf("Strip(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
